@@ -1,0 +1,39 @@
+name: Publish site
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install --quiet pillow
+
+      - name: Fetch the live app
+        run: |
+          curl -fsSL "https://bcyyyfqmcapzqulkokyb.supabase.co/functions/v1/app-svg" -o index.html
+          echo "size: $(wc -c < index.html) bytes"
+          head -c 200 index.html
+
+      - name: Add web-app tags and build icons
+        run: python3 tools/prepare.py
+
+      - name: Commit the published site
+        run: |
+          git config user.name "nex-publisher"
+          git config user.email "nex-publisher@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish NEX FOOTBALL site" || echo "nothing to commit"
+          git push
