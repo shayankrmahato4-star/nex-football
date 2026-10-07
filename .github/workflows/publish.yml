@@ -23,10 +23,11 @@ jobs:
       - name: Install dependencies
         run: pip install --quiet pillow
 
-      - name: Fetch the live app
+      - name: Fetch the live app (mobile web app)
         run: |
-          curl -fsSL "https://bcyyyfqmcapzqulkokyb.supabase.co/functions/v1/app-svg" -o index.html
+          curl -fsSL "https://bcyyyfqmcapzqulkokyb.supabase.co/functions/v1/app-html" -o index.html
           echo "size: $(wc -c < index.html) bytes"
+          head -c 120 index.html
 
       - name: Add web-app tags and build icons
         run: python3 tools/prepare.py
@@ -39,6 +40,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "no changes to publish"
           else
-            git commit -m "Publish NEX FOOTBALL site"
+            git commit -m "Publish NEX FOOTBALL mobile web app"
             git push origin HEAD:main
           fi
