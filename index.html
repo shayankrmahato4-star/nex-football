@@ -2845,11 +2845,28 @@ function openChallengeSheet(){
   const team=myTeam();
   const others=STATE.teams.filter(function(t){return t.id!==team.id;});
   let h='<div class="sh-title">Challenge a team</div>';
+  h+='<div class="field" style="margin-bottom:10px"><input id="ch-search" class="input" autocomplete="off" placeholder="Search team name or UID" oninput="chSearch(this.value)"></div>';
+  h+='<div id="ch-list">';
   others.forEach(function(t){
-    h+='<button class="sheet-opt" onclick="challengeAmountSheet(\''+t.id+'\')">'+teamLogo(t,'sm')+'<span><span class="so-title">'+esc(t.name)+'</span><span class="so-sub" style="display:block">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+' &middot; #'+esc(t.teamId||'')+'</span></span></button>';
+    h+='<button class="sheet-opt ch-item" data-q="'+esc(String(t.name||'').toLowerCase()+' '+(t.teamId||''))+'" onclick="challengeAmountSheet(\''+t.id+'\')">'+teamLogo(t,'sm')+'<span><span class="so-title">'+esc(t.name)+'</span><span class="so-sub" style="display:block">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+' &middot; #'+esc(t.teamId||'')+'</span></span></button>';
   });
   if(!others.length)h+='<div class="tiny" style="text-align:center;padding:20px">No other teams yet.</div>';
+  h+='</div>';
+  h+='<div id="ch-empty" class="tiny" style="text-align:center;padding:16px;display:none">No team matches that search.</div>';
   showSheet(h);
+}
+function chSearch(v){
+  v=String(v||'').replace(/#/g,'').trim().toLowerCase();
+  var list=document.getElementById('ch-list');if(!list)return;
+  var items=list.querySelectorAll('.ch-item');var shown=0;
+  for(var i=0;i<items.length;i++){
+    var q=String(items[i].getAttribute('data-q')||'');
+    var ok=!v||q.indexOf(v)>=0;
+    items[i].style.display=ok?'':'none';
+    if(ok)shown++;
+  }
+  var e=document.getElementById('ch-empty');
+  if(e)e.style.display=(items.length&&!shown)?'':'none';
 }
 function challengeAmountSheet(tid){
   var t=T(tid);
