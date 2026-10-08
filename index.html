@@ -3570,11 +3570,17 @@ SCREENS['match-details']=function(p){
   }
   h+='</div>';
   if(iAmPlaying&&m.status==='UPCOMING'){
-    h+='<div class="card"><div class="card-title">'+I('check',16)+' Your availability</div>'
-    +'<div class="row" style="gap:10px">'
-    +'<button class="btn '+(confirmed?'primary':'secondary')+' grow" onclick="setAvailability(\''+m.id+'\',true)">'+I('check',15)+' '+ (confirmed?'CONFIRMED':'CONFIRM')+'</button>'
-    +'<button class="btn '+(declined?'danger':'secondary')+' grow" onclick="setAvailability(\''+m.id+'\',false)">'+I('x',15)+' '+(declined?'DECLINED':'DECLINE')+'</button></div>'
-    +'<div class="tiny" style="margin-top:8px">'+m.availability.confirmed.length+' confirmed &middot; '+m.availability.declined.length+' declined</div></div>';
+    if(confirmed||declined){
+      h+='<div class="card"><div class="card-title">'+I('check',16)+' Your availability</div>'
+      +'<div class="tiny" style="font-weight:800;color:'+(confirmed?'var(--ok)':'var(--err)')+'">'+(confirmed?'You CONFIRMED your availability':'You DECLINED &middot; saved in Challenges')+'</div>'
+      +'<div class="tiny" style="margin-top:8px">'+m.availability.confirmed.length+' confirmed &middot; '+m.availability.declined.length+' declined</div></div>';
+    }else{
+      h+='<div class="card"><div class="card-title">'+I('check',16)+' Your availability</div>'
+      +'<div class="row" style="gap:10px">'
+      +'<button class="btn secondary grow" onclick="setAvailability(\''+m.id+'\',true)">'+I('check',15)+' CONFIRM</button>'
+      +'<button class="btn secondary grow" onclick="setAvailability(\''+m.id+'\',false)">'+I('x',15)+' DECLINE</button></div>'
+      +'<div class="tiny" style="margin-top:8px">'+m.availability.confirmed.length+' confirmed &middot; '+m.availability.declined.length+' declined</div></div>';
+    }
   }
   if(iAmPlaying&&m.availability.confirmed.length){
     h+='<div class="card"><div class="card-title">'+I('users',16)+' Confirmed ('+m.availability.confirmed.length+')</div>';
@@ -3593,7 +3599,33 @@ function setAvailability(mid,going){
   m.availability.confirmed=m.availability.confirmed.filter(function(x){return x!==me;});
   m.availability.declined=m.availability.declined.filter(function(x){return x!==me;});
   if(going)m.availability.confirmed.push(me);else m.availability.declined.push(me);
+  if(!going){
+    var c=challengeForMatch(m);
+    if(c){
+      c.status='DECLINED';
+      c.declinedBy=c.declinedBy||{};
+      c.declinedBy[me]=true;
+      m.status='DISMISSED';
+      save();
+      toast('Challenge declined \u2014 saved in Challenges','err');
+      render(false,true);
+      return;
+    }
+  }
   save();toast(going?'Availability confirmed':'Marked unavailable','ok');render(false,true);
+}
+function challengeForMatch(m){
+  if(!m)return null;
+  var list=STATE.challenges||[];
+  for(var i=0;i<list.length;i++){
+    var c=list[i];if(!c)continue;
+    var same=(c.fromTeam===m.teamA&&c.toTeam===m.teamB)||(c.fromTeam===m.teamB&&c.toTeam===m.teamA);
+    if(!same)continue;
+    if(dayOfTs(c.date)!==dayOfTs(m.date))continue;
+    if(String(c.time||'')!==String(m.time||''))continue;
+    return c;
+  }
+  return null;
 }
 
 /* ================= BOOT ================= */
