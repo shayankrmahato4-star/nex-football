@@ -3502,17 +3502,6 @@ SCREENS['team-profile']=function(p){
   +'<div class="muted">'+esc(t.description)+'</div>'
   +'<div class="tiny" style="margin-top:4px">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+'</div>'
   +(memberOfThis?'<div style="margin-top:10px"><span class="badge ok">YOUR TEAM</span></div>':'')+'</div>';
-  /* ---- actions ---- */
-  if(memberOfThis){
-    h+='<div class="card flat"><div class="tiny">You are in this team \u2014 manage it from the TEAM tab.</div>'
-     +'<button class="btn primary block" style="margin-top:10px" onclick="goTab(\'team\')">'+I('users',15)+' OPEN MY TEAM</button></div>';
-  }else if(inSomeTeam){
-    h+='<button class="btn primary block" onclick="challengeAmountSheet(\''+t.id+'\')">'+I('flag',16)+' CHALLENGE THIS TEAM</button>';
-  }else if(pending){
-    h+='<button class="btn secondary block" style="opacity:.7" disabled>'+I('clock',16)+' REQUEST PENDING</button>';
-  }else{
-    h+='<button class="btn primary block" onclick="requestJoinTeam(\''+t.id+'\')">'+I('plus',16)+' REQUEST TO JOIN</button>';
-  }
   /* ---- squad ---- */
   h+='<div class="section-h">Squad ('+t.members.length+')</div><div class="card">';
   if(!t.members.length)h+='<div class="tiny">No members yet.</div>';
@@ -3523,7 +3512,19 @@ SCREENS['team-profile']=function(p){
      +'<div class="tiny">'+esc(pl.position||'')+' &middot; #'+esc(pl.uid||'')+'</div></div>'
      +roleBadge(m.role)+I('fwd',14)+'</div>';
   });
-  h+='</div><div style="height:10px"></div></div></div>';
+  h+='</div><div style="height:200px"></div></div>';
+  /* ---- bottom action bar ---- */
+  h+='<div style="position:absolute;left:0;right:0;bottom:88px;padding:12px 16px;background:linear-gradient(to top,var(--navy) 74%,rgba(5,10,36,0))">';
+  if(memberOfThis){
+    h+='<button class="btn primary block" onclick="goTab(\'team\')">'+I('users',16)+' OPEN MY TEAM</button>';
+  }else if(inSomeTeam){
+    h+='<button class="btn primary block" onclick="challengeAmountSheet(\''+t.id+'\')">'+I('flag',16)+' CHALLENGE THIS TEAM</button>';
+  }else if(pending){
+    h+='<button class="btn secondary block" style="opacity:.7" disabled>'+I('clock',16)+' REQUEST PENDING</button>';
+  }else{
+    h+='<button class="btn primary block" onclick="requestJoinTeam(\''+t.id+'\')">'+I('plus',16)+' REQUEST TO JOIN</button>';
+  }
+  h+='</div></div>';
   return h;
 };
 
