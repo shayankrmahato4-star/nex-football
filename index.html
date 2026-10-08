@@ -3490,12 +3490,40 @@ SCREENS_AFTER['notifications']=function(){
 SCREENS['team-profile']=function(p){
   const t=T(p.id);
   if(!t)return emptyState('users','Not found','This team does not exist.');
-  const isMine=myTeam()&&myTeam().id===t.id;
+  const mt=myTeam();
+  const memberOfThis=!!(mt&&mt.id===t.id);
+  const inSomeTeam=!!mt;
+  const mine=(STATE.teamJoinRequests||[]).filter(function(r){return r.teamId===t.id&&r.playerId===STATE.currentUser;});
+  const myReq=mine.length?mine[mine.length-1]:null;
+  const pending=!!(myReq&&myReq.status==='PENDING');
   let h='<div class="screen">'+topbar(t.name,'TEAM '+t.teamId)+'<div class="screen-body">'
   +'<div class="card" style="text-align:center"><div style="display:flex;justify-content:center;margin-bottom:10px">'+teamLogo(t,'lg')+'</div>'
   +'<div style="font-size:19px;font-weight:900;margin-top:2px">'+esc(t.name)+'</div>'
   +'<div class="muted">'+esc(t.description)+'</div>'
-  +'<div class="tiny" style="margin-top:4px">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+'</div></div>';
+  +'<div class="tiny" style="margin-top:4px">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+'</div>'
+  +(memberOfThis?'<div style="margin-top:10px"><span class="badge ok">YOUR TEAM</span></div>':'')+'</div>';
+  /* ---- actions ---- */
+  if(memberOfThis){
+    h+='<div class="card flat"><div class="tiny">You are in this team \u2014 manage it from the TEAM tab.</div>'
+     +'<button class="btn primary block" style="margin-top:10px" onclick="goTab(\'team\')">'+I('users',15)+' OPEN MY TEAM</button></div>';
+  }else if(inSomeTeam){
+    h+='<button class="btn primary block" onclick="challengeAmountSheet(\''+t.id+'\')">'+I('flag',16)+' CHALLENGE THIS TEAM</button>';
+  }else if(pending){
+    h+='<button class="btn secondary block" style="opacity:.7" disabled>'+I('clock',16)+' REQUEST PENDING</button>';
+  }else{
+    h+='<button class="btn primary block" onclick="requestJoinTeam(\''+t.id+'\')">'+I('plus',16)+' REQUEST TO JOIN</button>';
+  }
+  /* ---- squad ---- */
+  h+='<div class="section-h">Squad ('+t.members.length+')</div><div class="card">';
+  if(!t.members.length)h+='<div class="tiny">No members yet.</div>';
+  t.members.forEach(function(m){
+    const pl=P(m.playerId);if(!pl)return;
+    h+='<div class="player-row" onclick="nav(\'player-profile\',{id:\''+pl.id+'\'})">'+avatar(pl,'sm')
+     +'<div class="grow"><div style="font-size:13.5px;font-weight:700">'+esc(pl.name)+'</div>'
+     +'<div class="tiny">'+esc(pl.position||'')+' &middot; #'+esc(pl.uid||'')+'</div></div>'
+     +roleBadge(m.role)+I('fwd',14)+'</div>';
+  });
+  h+='</div><div style="height:10px"></div></div></div>';
   return h;
 };
 
