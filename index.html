@@ -1230,13 +1230,49 @@ function teamMeetsEligibility(tr,team){
   return {ok:fail.length===0,fail:fail};
 }
 
+/* ---- upcoming match helpers (own team, date then time order) ---- */
+function tsOf(v){
+  if(v===null||v===undefined||v==='')return 0;
+  if(typeof v==='number')return v;
+  var n=Number(v);
+  if(!isNaN(n)&&n>1000000000)return n;
+  var d=new Date(v);
+  return isNaN(d.getTime())?0:d.getTime();
+}
+function dayOfTs(v){var t=tsOf(v);return t?Math.floor(t/86400000):0;}
+function timeMinOf(t){
+  var m=String(t||'').trim().toUpperCase().match(/(\d{1,2})[:.](\d{2})\s*(AM|PM)?/);
+  if(!m)return 99999;
+  var hh=parseInt(m[1],10),mm=parseInt(m[2],10),ap=m[3];
+  if(ap==='PM'&&hh<12)hh+=12;
+  if(ap==='AM'&&hh===12)hh=0;
+  return hh*60+mm;
+}
+function isMyMatch(m){
+  var team=myTeam();
+  if(!team||!m)return false;
+  var a=m.teamA,b=m.teamB;
+  var mineA=(a===team.id),mineB=(b===team.id);
+  if(!mineA&&!mineB)return false;
+  var opp=mineA?b:a;
+  if(!opp||opp===team.id)return false;
+  return !!T(opp);
+}
+function myUpcomingMatches(){
+  return STATE.matches.filter(function(m){return m.status==='UPCOMING'&&isMyMatch(m);})
+    .sort(function(x,y){
+      var dx=dayOfTs(x.date),dy=dayOfTs(y.date);
+      if(dx!==dy)return dx-dy;
+      return timeMinOf(x.time)-timeMinOf(y.time);
+    });
+}
 /* ================= HOME ================= */
 SCREENS['home']=function(){
   const me=cur(),team=myTeam();
   const notifs=unreadCount();
   const openTours=STATE.tournaments.filter(function(t){return t.status==='OPEN';});
   const liveMatch=STATE.matches.filter(function(m){return m.status==='LIVE';});
-  const upMatch=STATE.matches.filter(function(m){return m.status==='UPCOMING';});
+  const upMatch=myUpcomingMatches();
   const hero=[
     (liveMatch.length?[{t:'Match is LIVE',b:'Tap to follow the action',c:'rgba(239,68,68,.14)',tab:'matches'}]:[]),
     {t:'Find a tournament nearby',b:openTours.length+' open tournaments around you',c:'rgba(26,91,255,.14)',go:"goTab('discover')"}];
@@ -1269,7 +1305,8 @@ SCREENS['home']=function(){
     liveMatch.forEach(function(m){h+='<div class="card flat" style="padding:0;overflow:hidden">'+matchCardHTML(m).replace('<div class="match-card"','<div class="match-card" style="margin:0;border:none"')+'</div>';});
   }
   if(upMatch.length){
-    h+='<div class="section-h">Upcoming match</div>'+matchCardHTML(upMatch[0]);
+    h+='<div class="section-h">Upcoming match</div>';
+    upMatch.slice(0,3).forEach(function(m){h+=matchCardHTML(m);});
   }
   h+='<div class="section-h">Teams near you</div><div class="rail">';
   STATE.teams.slice(0,4).forEach(function(t){
