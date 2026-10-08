@@ -333,7 +333,7 @@ select.input{appearance:none;-webkit-appearance:none}
 .stat-box .sl{font-size:9.5px;font-weight:700;color:var(--gray-2);letter-spacing:.6px;text-transform:uppercase;margin-top:2px}
 .quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:4px}
 .quick-opt{display:flex;flex-direction:column;align-items:center;gap:7px;padding:13px 4px;border-radius:15px;background:linear-gradient(180deg,var(--navy-2),#071029);border:1px solid var(--line-soft);color:#E8EDF5;font-size:10px;font-weight:700;letter-spacing:.3px}
-.quick-opt .q-ico{width:38px;height:38px;border-radius:12px;background:var(--navy-3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--gold)}
+.quick-opt .q-ico{width:38px;height:38px;border-radius:12px;background:var(--navy-3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--goldy)}
 .otp-row{display:flex;gap:10px;justify-content:center;margin:22px 0}
 .otp-box{width:46px;height:54px;border-radius:14px;background:var(--navy-3);border:1.5px solid var(--line);color:#fff;font-size:22px;font-weight:800;text-align:center;outline:none;caret-color:var(--gold)}
 .otp-box:focus{border-color:var(--blue)}
@@ -1414,11 +1414,6 @@ SCREENS['team']=function(p){
   +'<div style="font-size:19px;font-weight:900;margin-top:2px">'+esc(team.name)+'</div>'
   +'<div class="muted">'+esc(team.description)+'</div>'
   +'<div class="tiny" style="margin-top:4px">'+esc(team.area)+' &middot; '+memLbl(team.members.length)+'</div></div>';
-  h+='<div class="stat-grid">'
-  +'<div class="stat-box"><div class="sv">'+team.stats.matches+'</div><div class="sl">MP</div></div>'
-  +'<div class="stat-box"><div class="sv">'+team.stats.wins+'</div><div class="sl">W</div></div>'
-  +'<div class="stat-box"><div class="sv">'+team.stats.draws+'</div><div class="sl">D</div></div>'
-  +'<div class="stat-box"><div class="sv">'+team.stats.losses+'</div><div class="sl">L</div></div></div>';
   if(isStaff()){
     h+='<div class="card flat"><div class="row between" style="flex-wrap:wrap;gap:8px">'
     +'<button class="btn secondary sm" onclick="nav(\'team-join-requests\')">'+I('users',13)+' Requests'+(myPending?' ('+myPending+')':'')+'</button>'
@@ -3418,46 +3413,7 @@ SCREENS['team-profile']=function(p){
   +'<div class="card" style="text-align:center"><div style="display:flex;justify-content:center;margin-bottom:10px">'+teamLogo(t,'lg')+'</div>'
   +'<div style="font-size:19px;font-weight:900;margin-top:2px">'+esc(t.name)+'</div>'
   +'<div class="muted">'+esc(t.description)+'</div>'
-  +'<div class="tiny" style="margin-top:4px">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+'</div></div>'
-  +'<div class="stat-grid">'
-  +'<div class="stat-box"><div class="sv">'+t.stats.matches+'</div><div class="sl">MP</div></div>'
-  +'<div class="stat-box"><div class="sv">'+t.stats.wins+'</div><div class="sl">W</div></div>'
-  +'<div class="stat-box"><div class="sv">'+t.stats.draws+'</div><div class="sl">D</div></div>'
-  +'<div class="stat-box"><div class="sv">'+t.stats.losses+'</div><div class="sl">L</div></div></div>'
-  +'<div class="card"><div class="card-title">'+I('chart',16)+' Form & goals</div>'
-  +'<div class="row between" style="margin-bottom:8px"><span class="muted">Last 6</span><div class="team-form">'+t.form.map(function(f){return '<span class="'+f+'">'+f+'</span>';}).join('')+'</div></div>'
-  +'<div class="row between"><span class="muted">Goals for / against</span><span style="font-weight:800">'+t.stats.gf+' / '+t.stats.ga+'</span></div></div>'
-  +'<div class="card"><div class="card-title">'+I('users',16)+' Squad</div>';
-  t.members.forEach(function(m){
-    const p2=P(m.playerId);if(!p2)return;
-    h+='<div class="player-row" onclick="nav(\'player-profile\',{id:\''+p2.id+'\'})">'+avatar(p2,'sm')
-    +'<div class="grow"><div style="font-size:13.5px;font-weight:700">'+esc(p2.name)+'</div><div class="tiny">'+esc(p2.position)+' &middot; '+esc(p2.area)+'</div></div>'
-    +roleBadge(m.role)+'</div>';
-  });
-  h+='</div>';
-const mt=myTeam();var _cd=new Date();var _cds=_cd.getFullYear()+'-'+('0'+(_cd.getMonth()+1)).slice(-2)+'-'+('0'+_cd.getDate()).slice(-2);
-  if(mt&&mt.id!==t.id){
-    h+='<div class="card"><div class="card-title">'+I('flag',16)+' Challenge '+esc(t.name)+'</div>'
-    +'<div class="field" style="margin-top:10px"><label>AMOUNT (\u20B9)</label><input id="ch-amt" class="input" inputmode="numeric" placeholder="e.g. 500"></div>'
-    +'<div class="row2" style="margin-top:10px"><div class="field"><label>DATE *</label><input id="ch-date" class="input" type="date" min="'+_cds+'"></div>'
-    +'<div class="field"><label>TIME *</label><select id="ch-time" class="input"><option>6:00 PM</option><option>7:00 PM</option><option selected>7:30 PM</option><option>8:00 PM</option><option>9:00 PM</option><option>10:00 PM</option></select></div></div>'
-    +'<div class="field" style="margin-top:10px"><label>GROUND *</label><input id="ch-ground" class="input" placeholder="e.g. Andheri Sports Complex"></div>'
-    +'<button class="btn gold block" style="margin-top:10px" onclick="sendChallengeTo(\''+t.id+'\')">'+I('flag',16)+' SEND CHALLENGE</button>'
-    +'<div class="tiny" style="margin-top:8px">'+(canChallenge()?'Confirm with your PIN to send.':'Your team staff (officers/leaders) must accept (60%) before it is sent.')+' PIN required.</div></div>';
-  }
-    if(!isMine){
-    const meIn=cur();
-    const already=STATE.teamJoinRequests.find(function(r){return r.teamId===t.id&&r.playerId===(meIn?meIn.id:'')&&r.status==='PENDING';});
-    const hasTeam=!!myTeam();
-    if(hasTeam){
-    h+='<button class="btn secondary block" disabled>'+I('users',15)+' ALREADY IN A TEAM</button>';
-        h+='<div class="tiny" style="text-align:center;margin-top:8px">Leave your current team from Profile before joining another.</div>';
-  }else{
-    h+='<button class="btn '+(already?'secondary':'gold')+' block" '+(already?'disabled':'')+' onclick="requestJoinTeam(\''+t.id+'\')">'
-        +(already?I('clock',15)+' REQUEST PENDING':I('plus',15)+' REQUEST TO JOIN')+'</button>';
-    h+='<div class="tiny" style="text-align:center;margin-top:8px">Send a request \u2014 the team staff will review it.</div>';
-  }  }
-  h+='<div style="height:12px"></div></div></div>';
+  +'<div class="tiny" style="margin-top:4px">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+'</div></div>';
   return h;
 };
 
