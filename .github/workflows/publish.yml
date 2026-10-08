@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -25,9 +29,10 @@ jobs:
 
       - name: Fetch the live app (mobile web app)
         run: |
-          curl -fsSL "https://bcyyyfqmcapzqulkokyb.supabase.co/functions/v1/app-html" -o index.html
+          curl -fsSL -H 'Cache-Control: no-cache' \
+            "https://bcyyyfqmcapzqulkokyb.supabase.co/functions/v1/app-html?cb=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            -o index.html
           echo "size: $(wc -c < index.html) bytes"
-          head -c 120 index.html
 
       - name: Add web-app tags and build icons
         run: python3 tools/prepare.py
