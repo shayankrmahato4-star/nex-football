@@ -19,7 +19,7 @@
   --navy:#050A24; --navy-2:#0A1230; --navy-3:#111C4A;
   --line:#26327B; --line-soft:#1A2358;
   --blue:#1A5BFF; --blue-2:#45C8FF;
-  --gold:#1A5BFF; --gold-2:#45C8FF;
+  --gold:#1A5BFF; --gold-2:#45C8FF; --goldy:#FFC107; --goldy-2:#FFD54D;
   --ok:#22C55E; --err:#EF4444;
   --gray:#A8B3C2; --gray-2:#6B7C93;
   --nav-h:66px; --ease:cubic-bezier(.16,1,.3,1);
@@ -82,7 +82,7 @@ input,select,textarea{font-family:inherit}
 /* ===== BADGES ===== */
 .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.6px;background:var(--navy-3);color:var(--gray);border:1px solid var(--line)}
 .badge.blue{background:rgba(26,91,255,.15);color:var(--blue-2);border-color:rgba(26,91,255,.4)}
-.badge.gold{background:rgba(26,91,255,.13);color:var(--gold);border-color:rgba(26,91,255,.4)}
+.badge.gold{background:rgba(255,193,7,.13);color:var(--goldy);border-color:rgba(255,193,7,.4)}
 .badge.gray{background:var(--navy-3);color:var(--gray-2)}
 .badge.ok{background:rgba(34,197,94,.13);color:var(--ok);border-color:rgba(34,197,94,.4)}
 .badge.err{background:rgba(239,68,68,.13);color:var(--err);border-color:rgba(239,68,68,.4)}
@@ -237,8 +237,8 @@ select.input{appearance:none;-webkit-appearance:none}
 /* ===== PRIZE SLOTS ===== */
 .prize-slot{display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:14px;background:var(--navy-3);border:1px solid var(--line);margin-bottom:9px}
 .prize-slot .ps-rank{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;flex-shrink:0}
-.prize-slot.p1{background:linear-gradient(120deg,rgba(26,91,255,.14),rgba(26,91,255,.04));border-color:rgba(26,91,255,.45)}
-.prize-slot.p1 .ps-rank{background:linear-gradient(135deg,var(--gold),var(--gold-2));color:#fff}
+.prize-slot.p1{background:linear-gradient(120deg,rgba(255,193,7,.14),rgba(255,193,7,.04));border-color:rgba(255,193,7,.45)}
+.prize-slot.p1 .ps-rank{background:linear-gradient(135deg,var(--goldy),var(--goldy-2));color:#fff}
 .prize-slot.p2{border-color:rgba(200,210,225,.35)}
 .prize-slot.p2 .ps-rank{background:linear-gradient(135deg,#CBD5E1,#94A3B8);color:#fff}
 .prize-slot.p3{border-color:rgba(205,127,50,.4)}
@@ -1705,13 +1705,13 @@ SCREENS['tournament-details']=function(p){
     const ct=T(champ);
     const ru=bracketRunnerUp(tr.bracket);
     const rt=ru?T(ru):null;
-    h+='<div class=\"champ-card\">'+I('crown',34)+'<div class=\"tiny\" style=\"letter-spacing:1.5px;color:var(--gold)\">CHAMPION</div>'
+    h+='<div class=\"champ-card\">'+I('crown',34)+'<div class=\"tiny\" style=\"letter-spacing:1.5px;color:var(--goldy)\">CHAMPION</div>'
     +teamLogo(ct,'lg')+'<div style=\"font-size:18px;font-weight:900\">'+esc(ct?ct.name:'')+'</div>'
     +(tr.prizes&&tr.prizes.first?'<div class=\"tiny\" style=\"color:var(--gold);font-weight:700\">Wins '+esc(tr.prizes.first)+'</div>':'')
     +(rt?'<div class=\"tiny\" style=\"margin-top:6px\">Runner-up: '+esc(rt.name)+'</div>':'')+'</div>';
   }
   h+='<div class="card"><div class="card-title">'+I('star',16)+' Prizes</div>';
-  if(tr.prizeCount>=1)h+='<div class="prize-slot p1"><span class="ps-rank">1</span><div class="grow"><div style="font-weight:800">Winner</div><div class="tiny">Champions + gold medals</div></div><span style="font-weight:900;color:var(--gold)">'+esc(tr.prizes.first)+'</span></div>';
+  if(tr.prizeCount>=1)h+='<div class="prize-slot p1"><span class="ps-rank">1</span><div class="grow"><div style="font-weight:800">Winner</div><div class="tiny">Champions + gold medals</div></div><span style="font-weight:900;color:var(--goldy)">'+esc(tr.prizes.first)+'</span></div>';
   if(tr.prizeCount>=2)h+='<div class="prize-slot p2"><span class="ps-rank">2</span><div class="grow"><div style="font-weight:800">Runner-up</div><div class="tiny">Silver medals</div></div><span style="font-weight:800">'+esc(tr.prizes.second)+'</span></div>';
   if(tr.prizeCount>=3)h+='<div class="prize-slot p3"><span class="ps-rank">3</span><div class="grow"><div style="font-weight:800">3rd place</div><div class="tiny">Bronze medals</div></div><span style="font-weight:800">'+esc(tr.prizes.third)+'</span></div>';
   if(tr.prizeCount>=4)h+='<div class="prize-slot p4"><span class="ps-rank">4</span><div class="grow"><div style="font-weight:800">4th place</div><div class="tiny">Merit certificates</div></div><span style="font-weight:800">'+esc(tr.prizes.fourth)+'</span></div>';
@@ -1832,7 +1832,7 @@ SCREENS['manage-tournament']=function(p){
     const rt2=ru2?T(ru2):null;
     h+='<div class=\"card\"><div class=\"card-title\">'+I('crown',16)+' Final result</div>';
     if(ct2){
-      h+='<div class=\"player-row\" style=\"cursor:default\">'+teamLogo(ct2,'sm')+'<div class=\"grow\"><div style=\"font-weight:800;color:var(--gold)\">1 &middot; '+esc(ct2.name)+'</div><div class=\"tiny\">Champions'+(tr.prizes&&tr.prizes.first?' &middot; '+esc(tr.prizes.first):'')+'</div></div>'+I('crown',18)+'</div>';
+      h+='<div class=\"player-row\" style=\"cursor:default\">'+teamLogo(ct2,'sm')+'<div class=\"grow\"><div style=\"font-weight:800;color:var(--goldy)\">1 &middot; '+esc(ct2.name)+'</div><div class=\"tiny\">Champions'+(tr.prizes&&tr.prizes.first?' &middot; '+esc(tr.prizes.first):'')+'</div></div>'+I('crown',18)+'</div>';
       if(rt2)h+='<div class=\"player-row\" style=\"cursor:default\">'+teamLogo(rt2,'sm')+'<div class=\"grow\"><div style=\"font-weight:700\">2 &middot; '+esc(rt2.name)+'</div><div class=\"tiny\">Runner-up'+(tr.prizes&&tr.prizes.second?' &middot; '+esc(tr.prizes.second):'')+'</div></div></div>';
     }else h+='<div class=\"tiny\">No champion was recorded for this tournament.</div>';
     h+='</div>';
@@ -2005,7 +2005,7 @@ SCREENS['view-bracket']=function(p){
   }
   if(champ&&tr.bracket.published){
     const ct=T(champ);
-    h+='<div class=\"champ-card\">'+I('crown',36)+'<div class=\"tiny\" style=\"letter-spacing:1.5px;color:var(--gold)\">CHAMPION</div>'
+    h+='<div class=\"champ-card\">'+I('crown',36)+'<div class=\"tiny\" style=\"letter-spacing:1.5px;color:var(--goldy)\">CHAMPION</div>'
     +teamLogo(ct,'lg')+'<div style=\"font-size:18px;font-weight:900\">'+esc(ct?ct.name:'')+'</div>'
     +(tr.prizes&&tr.prizes.first?'<div class=\"tiny\" style=\"color:var(--gold);font-weight:700\">Wins '+esc(tr.prizes.first)+'</div>':'')
     +'<div class=\"tiny\">'+esc(tr.name)+'</div></div>';
@@ -2028,9 +2028,9 @@ SCREENS['tournament-results']=function(p){
   try{const fm=rounds[rounds.length-1][0];if(fm&&fm.a&&fm.b)runner=(fm.w===fm.a?fm.b:fm.a);}catch(e){}
   const ct=T(champ),rt=runner?T(runner):null;
   let h='<div class="screen">'+topbar('Final results',tr.name.toUpperCase())+'<div class="screen-body">';
-  h+='<div class="champ-card">'+I('crown',44)+'<div class="tiny" style="letter-spacing:1.5px;color:var(--gold)">CHAMPION</div>'
+  h+='<div class="champ-card">'+I('crown',44)+'<div class="tiny" style="letter-spacing:1.5px;color:var(--goldy)">CHAMPION</div>'
   +teamLogo(ct,'lg')+'<div style="font-size:20px;font-weight:900">'+esc(ct?ct.name:'')+'</div>'
-  +(tr.prizes&&tr.prizes.first?'<div class="tiny" style="color:var(--gold);font-weight:700">Wins '+esc(tr.prizes.first)+'</div>':'')+'</div>';
+  +(tr.prizes&&tr.prizes.first?'<div class="tiny" style="color:var(--goldy);font-weight:700">Wins '+esc(tr.prizes.first)+'</div>':'')+'</div>';
   if(rt)h+='<div class="champ-card" style="border-color:rgba(154,173,255,.35)">'+I('users',30)+'<div class="tiny" style="letter-spacing:1.5px;color:var(--blue-2)">RUNNER-UP</div>'
   +teamLogo(rt,'lg')+'<div style="font-size:17px;font-weight:900">'+esc(rt.name)+'</div>'
   +(tr.prizes&&tr.prizes.second?'<div class="tiny" style="color:var(--blue-2);font-weight:700">Wins '+esc(tr.prizes.second)+'</div>':'')+'</div>';
@@ -2303,7 +2303,7 @@ SCREENS['edit-bracket']=function(p){
   });
   if(champ){
     const ct=T(champ);
-    h+='<div class="champ-card">'+I('crown',30)+'<div class="tiny" style="letter-spacing:1.5px;color:var(--gold)">CURRENT CHAMPION</div><div style="font-weight:900">'+esc(ct?ct.name:'')+'</div>'
+    h+='<div class="champ-card">'+I('crown',30)+'<div class="tiny" style="letter-spacing:1.5px;color:var(--goldy)">CURRENT CHAMPION</div><div style="font-weight:900">'+esc(ct?ct.name:'')+'</div>'
     +'<button class="btn outline sm" style="margin-top:4px" onclick="resetChampion(\''+tr.id+'\')">Reset champion</button></div>';
   }
   h+='<button class="btn gold block" onclick="back()">DONE</button>'
