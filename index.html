@@ -2578,8 +2578,6 @@ SCREENS['create-team']=function(){
   +'<div class="row2"><div class="field"><label>Base area</label>'+areaFieldHTML('ct-area')+'</div>'
   +'<div class="field"><label>Team ID</label><input class="input" value="Auto-generated" disabled></div></div>'
   +'<div class="field"><label>Description</label><textarea id="ct-desc" class="input" rows="3" placeholder="What is your team about?"></textarea></div>'
-  +'<div class="field"><label>Team color</label><div class="chip-select" id="ct-color">'
-  +TEAM_COLORS.map(function(c,i){return '<button class="chip'+(i===0?' active':'')+'" data-v="'+c+'" onclick="chipPick(this)" style="background:'+c+';border-radius:10px;width:34px;height:34px;padding:0"></button>';}).join('')+'</div></div>'
   +'<button class="btn gold block" onclick="doCreateTeam()">CREATE TEAM</button>'
   +'<div class="tiny" style="text-align:center;margin-top:10px;margin-bottom:14px">You will become the team LEADER (1 per team).</div>'
   +'</div></div>';
@@ -2634,8 +2632,6 @@ SCREENS['edit-team']=function(){
   +'<div class="field"><label>Team name</label><input id="et-name" class="input" value="'+esc(team.name)+'"></div>'
   +'<div class="field"><label>Base area</label>'+areaFieldHTML('et-area',team.area)+'</div>'
   +'<div class="field"><label>Description</label><textarea id="et-desc" class="input" rows="3">'+esc(team.description)+'</textarea></div>'
-  +'<div class="field"><label>Team color</label><div class="chip-select" id="et-color">'
-  +TEAM_COLORS.map(function(c){return '<button class="chip'+(c===team.color?' active':'')+'" data-v="'+c+'" onclick="chipPick(this)" style="background:'+c+';border-radius:10px;width:34px;height:34px;padding:0"></button>';}).join('')+'</div></div>'
   +'<button class="btn primary block" onclick="doEditTeam()">SAVE CHANGES</button>'
   +'<div style="height:10px"></div>';
   if(isLeader()){
