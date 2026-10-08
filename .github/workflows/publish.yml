@@ -29,10 +29,15 @@ jobs:
 
       - name: Fetch the live app (mobile web app)
         run: |
-          curl -fsSL -H 'Cache-Control: no-cache' \
-            "https://bcyyyfqmcapzqulkokyb.supabase.co/functions/v1/app-html?cb=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+          curl -fsSL -X POST \
+            "https://bcyyyfqmcapzqulkokyb.supabase.co/functions/v1/app-html" \
             -o index.html
           echo "size: $(wc -c < index.html) bytes"
+          if grep -q 'login-phone' index.html; then
+            echo "OK: phone login build"
+          else
+            echo "WARNING: content does not look like the expected build"
+          fi
 
       - name: Add web-app tags and build icons
         run: python3 tools/prepare.py
