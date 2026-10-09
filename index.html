@@ -2892,7 +2892,7 @@ SCREENS['challenges']=function(){
   incoming.forEach(function(c){
     const ft=T(c.fromTeam);
     h+='<div class="card"><div class="row">'+(ft?teamLogo(ft):'')+'<div class="grow"><div style="font-weight:800">'+esc(ft?ft.name:'')+'</div>'
-    +'<div class="tiny">'+dayOf(c.date)+' &middot; '+esc(c.time)+' &middot; '+esc(c.ground)+(c.amount?' &middot; '+fmt(c.amount):'')+'</div>'+(c.rules?'<div class="tiny" style="margin-top:4px">'+I('list',12)+' '+esc(c.rules)+'</div>':'')+'</div>'
+    +'<div class="tiny">'+dayOf(c.date)+' &middot; '+esc(c.time)+' &middot; '+esc(c.ground)+(c.amount?' &middot; '+fmt(c.amount):'')+'</div>'+(c.rules?'<div class="tiny" style="margin-top:4px">'+I('list',12)+' '+esc(c.rules)+'</div>':'')+(c.duration?'<div class="tiny" style="margin-top:4px">'+I('clock',12)+' '+esc(c.duration)+' min</div>':'')+'</div>'
     +(c.status==='PENDING'?'<span class="badge blue">PENDING</span>':c.status==='ACCEPTED'?'<span class="badge ok">ACCEPTED</span>':'<span class="badge err">DECLINED</span>')+'</div>';
     if(c.status==='PENDING'){
       const need=challengeVotesNeeded(team);
@@ -2911,7 +2911,7 @@ SCREENS['challenges']=function(){
   outgoing.forEach(function(c){
     const tt=T(c.toTeam);
     h+='<div class="card"><div class="row">'+(tt?teamLogo(tt):'')+'<div class="grow"><div style="font-weight:800">vs '+esc(tt?tt.name:'')+'</div>'
-    +'<div class="tiny">'+dayOf(c.date)+' &middot; '+esc(c.time)+' &middot; '+esc(c.ground)+(c.amount?' &middot; '+fmt(c.amount):'')+'</div>'+(c.rules?'<div class="tiny" style="margin-top:4px">'+I('list',12)+' '+esc(c.rules)+'</div>':'')+'</div>'
+    +'<div class="tiny">'+dayOf(c.date)+' &middot; '+esc(c.time)+' &middot; '+esc(c.ground)+(c.amount?' &middot; '+fmt(c.amount):'')+'</div>'+(c.rules?'<div class="tiny" style="margin-top:4px">'+I('list',12)+' '+esc(c.rules)+'</div>':'')+(c.duration?'<div class="tiny" style="margin-top:4px">'+I('clock',12)+' '+esc(c.duration)+' min</div>':'')+'</div>'
     +(c.status==='TEAM_APPROVAL'?'<span class="badge blue">TEAM APPROVAL</span>':c.status==='PENDING'?'<span class="badge blue">PENDING</span>':c.status==='ACCEPTED'?'<span class="badge ok">ACCEPTED</span>':'<span class="badge err">DECLINED</span>')+'</div>';
     if(c.status==='TEAM_APPROVAL'){
       const need2=challengeVotesNeeded(team);
@@ -3000,13 +3000,37 @@ function challengeAmountSheet(tid){
   var t=T(tid);
   var _cd2=new Date();var _cds2=_cd2.getFullYear()+'-'+('0'+(_cd2.getMonth()+1)).slice(-2)+'-'+('0'+_cd2.getDate()).slice(-2);
   showSheet('<div class="sh-title">Challenge '+esc(t?t.name:'')+'</div>'
+  +'<div class="row" style="gap:12px;margin-bottom:12px">'+teamLogo(t,'sm')+'<div class="grow"><div class="tiny">Your team vs #'+esc(t?t.teamId:'')+'</div></div></div>'
+
   +'<div class="field"><label>AMOUNT (\u20B9)</label><input id="ch-amt" class="input" inputmode="numeric" placeholder="e.g. 500"></div>'
   +'<div class="row2" style="margin-top:10px"><div class="field"><label>DATE *</label><input id="ch-date" class="input" type="date" min="'+_cds2+'"></div>'
   +'<div class="field"><label>TIME *</label><select id="ch-time" class="input"><option>6:00 PM</option><option>7:00 PM</option><option selected>7:30 PM</option><option>8:00 PM</option><option>9:00 PM</option><option>10:00 PM</option></select></div></div>'
   +'<div class="field" style="margin-top:10px"><label>GROUND *</label><input id="ch-ground" class="input" placeholder="e.g. Andheri Sports Complex"></div>'  +'<div class="field" style="margin-top:10px"><label>RULES</label><textarea id="ch-rules" class="input" rows="3" placeholder="e.g. 7-a-side &middot; 2 x 25 min &middot; no studs"></textarea></div>'
+  +'<div class="field" style="margin-top:10px"><label>DURATION (minutes)</label>'
+  +'<div class="row" style="gap:8px;align-items:center">'
+  +'<input id="ch-h1" class="input" inputmode="numeric" maxlength="3" value="20" style="text-align:center" oninput="durSync()">'
+  +'<span style="font-weight:900;color:var(--gray-2)">+</span>'
+  +'<input id="ch-br" class="input" inputmode="numeric" maxlength="3" value="5" style="text-align:center" oninput="durSync()">'
+  +'<span style="font-weight:900;color:var(--gray-2)">+</span>'
+  +'<input id="ch-h2" class="input" inputmode="numeric" maxlength="3" value="20" style="text-align:center" oninput="durSync()">'
+  +'</div>'
+  +'<div class="tiny" style="margin-top:6px">Half 1 + break + Half 2 &middot; <span id="ch-dur-total">20 + 5 + 20 = 45 min</span></div>'
 
   +'<button class="btn gold block" onclick="sendChallengeFromSheet(\''+tid+'\')">'+I('flag',16)+' SEND CHALLENGE</button>'
   +'<div class="tiny" style="margin-top:8px">'+(canChallenge()?'Confirm with your PIN to send.':'Your team staff (officers/leaders) must accept (60%) before it is sent.')+'</div>');
+}
+function durSync(){
+  var a=document.getElementById('ch-h1'),b=document.getElementById('ch-br'),c=document.getElementById('ch-h2'),o=document.getElementById('ch-dur-total');
+  if(!a||!b||!c||!o)return;
+  var x=parseInt(a.value||'0',10)||0,y=parseInt(b.value||'0',10)||0,z=parseInt(c.value||'0',10)||0;
+  o.textContent=x+' + '+y+' + '+z+' = '+(x+y+z)+' min';
+}
+function durText(){
+  var a=document.getElementById('ch-h1'),b=document.getElementById('ch-br'),c=document.getElementById('ch-h2');
+  if(!a||!b||!c)return '';
+  var x=parseInt(a.value||'0',10)||0,y=parseInt(b.value||'0',10)||0,z=parseInt(c.value||'0',10)||0;
+  if(!x&&!y&&!z)return '';
+  return x+' + '+y+' + '+z;
 }
 function sendChallengeFromSheet(tid){
   var el=document.getElementById('ch-amt');
@@ -3014,18 +3038,20 @@ function sendChallengeFromSheet(tid){
   var rules=rl?String(rl.value||'').trim():'';
   var dEl=document.getElementById('ch-date'),tEl=document.getElementById('ch-time'),gEl=document.getElementById('ch-ground');
   var dateV=dEl?dEl.value:'',timeV=tEl?tEl.value:'',groundV=gEl?String(gEl.value||'').trim():'';
+  var durV=durText();
   closeSheet();
-  sendChallengeV2(tid,el?el.value:'0',rules,dateV,timeV,groundV);
+  sendChallengeV2(tid,el?el.value:'0',rules,dateV,timeV,groundV,durV);
 }
 function sendChallengeTo(tid){
   var el=document.getElementById('ch-amt');
   sendChallengeV2(tid,el?el.value:'0');
 }
-function sendChallengeV2(tid,amt,rules,dateIn,timeIn,groundIn){
+function sendChallengeV2(tid,amt,rules,dateIn,timeIn,groundIn,durIn){
   var team=myTeam();if(!team)return;
   var amount=parseInt(String(amt||'').replace(/\D/g,''),10)||0;
   if(amount<=0){toast('Enter the challenge amount','err');return;}
   if(typeof rules!=='string'){var _rl=document.getElementById('ch-rules');rules=_rl?String(_rl.value||'').trim():'';}
+  var durV=(typeof durIn==='string')?durIn:durText();
   var gEl=document.getElementById('ch-ground');
   var groundV=(typeof groundIn==='string'&&groundIn)?groundIn:(gEl?gEl.value:'').trim();
   if(!groundV){toast('Enter the ground','err');return;}
@@ -3039,11 +3065,11 @@ function sendChallengeV2(tid,amt,rules,dateIn,timeIn,groundIn){
   var timeV=(typeof timeIn==='string'&&timeIn)?timeIn:(tEl?tEl.value:'7:30 PM');
   pinSheet(function(){
     if(canChallenge()){
-      STATE.challenges.push({id:'ch'+nowTs()+Math.floor(Math.random()*999),fromTeam:team.id,toTeam:tid,amount:amount,date:dateTs,time:timeV,ground:groundV,rules:rules,status:'PENDING',votesOut:{},votesIn:{}});
+      STATE.challenges.push({id:'ch'+nowTs()+Math.floor(Math.random()*999),fromTeam:team.id,toTeam:tid,amount:amount,date:dateTs,time:timeV,ground:groundV,rules:rules,duration:durV,status:'PENDING',votesOut:{},votesIn:{}});
       pushNotif('Challenge sent',team.name+' challenged '+(T(tid)?T(tid).name:'')+' for '+fmt(amount)+'.','flag');
       save();toast('Challenge sent','ok');
     }else{
-      var ch={id:'ch'+nowTs()+Math.floor(Math.random()*999),fromTeam:team.id,toTeam:tid,amount:amount,date:dateTs,time:timeV,ground:groundV,rules:rules,status:'TEAM_APPROVAL',initiator:STATE.currentUser,votesOut:{},votesIn:{}};
+      var ch={id:'ch'+nowTs()+Math.floor(Math.random()*999),fromTeam:team.id,toTeam:tid,amount:amount,date:dateTs,time:timeV,ground:groundV,rules:rules,duration:durV,status:'TEAM_APPROVAL',initiator:STATE.currentUser,votesOut:{},votesIn:{}};
       if(isStaff())ch.votesOut[STATE.currentUser]=true;
       STATE.challenges.push(ch);
       pushNotif('Challenge approval','Your team must accept (60%) to send the challenge to '+(T(tid)?T(tid).name:'')+'.','vote');
@@ -3678,7 +3704,9 @@ SCREENS['match-details']=function(p){
     }
   }
   var _chR=challengeForMatch(m);
-  if(_chR&&_chR.rules){h+='<div class="card"><div class="card-title">'+I('list',16)+' Rules</div><div class="tiny">'+esc(_chR.rules)+'</div></div>';}
+  if(_chR&&(_chR.rules||_chR.duration)){h+='<div class="card"><div class="card-title">'+I('list',16)+' Rules</div>'
+  +(_chR.duration?'<div class="tiny" style="margin-bottom:6px">'+I('clock',12)+' Duration: '+esc(_chR.duration)+' min</div>':'')
+  +(_chR.rules?'<div class="tiny">'+esc(_chR.rules)+'</div>':'')+'</div>';}
   if(iAmPlaying&&m.availability.confirmed.length){
     h+='<div class="card"><div class="card-title">'+I('users',16)+' Confirmed ('+m.availability.confirmed.length+')</div>';
     m.availability.confirmed.forEach(function(pid){
