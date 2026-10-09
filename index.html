@@ -2976,7 +2976,7 @@ function openChallengeSheet(){
   h+='<div class="field" style="margin-bottom:10px"><input id="ch-search" class="input" autocomplete="off" placeholder="Search team name or UID" oninput="chSearch(this.value)"></div>';
   h+='<div id="ch-list">';
   others.forEach(function(t){
-    h+='<button class="sheet-opt ch-item" data-q="'+esc(String(t.name||'').toLowerCase()+' '+(t.teamId||''))+'" onclick="nav(\'challenge-team\',{id:\''+t.id+'\'})">'+teamLogo(t,'sm')+'<span><span class="so-title">'+esc(t.name)+'</span><span class="so-sub" style="display:block">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+' &middot; #'+esc(t.teamId||'')+'</span></span></button>';
+    h+='<button class="sheet-opt ch-item" data-q="'+esc(String(t.name||'').toLowerCase()+' '+(t.teamId||''))+'" onclick="challengeAmountSheet(\''+t.id+'\')">'+teamLogo(t,'sm')+'<span><span class="so-title">'+esc(t.name)+'</span><span class="so-sub" style="display:block">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+' &middot; #'+esc(t.teamId||'')+'</span></span></button>';
   });
   if(!others.length)h+='<div class="tiny" style="text-align:center;padding:20px">No other teams yet.</div>';
   h+='</div>';
@@ -2995,54 +2995,6 @@ function chSearch(v){
   }
   var e=document.getElementById('ch-empty');
   if(e)e.style.display=(items.length&&!shown)?'':'none';
-}
-SCREENS['challenge-team']=function(p){
-  const t=T(p&&p.id);
-  if(!t)return emptyState('flag','Not found','This team does not exist.');
-  const team=myTeam();
-  if(!team)return emptyState('users','No team','Join or create a team first.');
-  const _cd=new Date();
-  const _cds=_cd.getFullYear()+'-'+('0'+(_cd.getMonth()+1)).slice(-2)+'-'+('0'+_cd.getDate()).slice(-2);
-  let h='<div class="screen">'+topbar('Challenge',t.name.toUpperCase())+'<div class="screen-body">';
-  h+='<div class="card" style="padding:18px 14px">'
-   +'<div class="row" style="align-items:center;justify-content:space-between;gap:8px">'
-   +'<div style="text-align:center;flex:1;min-width:0">'+teamLogo(team,'lg')
-   +'<div style="font-size:13.5px;font-weight:800;margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(team.name)+'</div>'
-   +'<div class="tiny">YOUR TEAM</div></div>'
-   +'<div style="font-size:18px;font-weight:900;color:var(--goldy);flex-shrink:0;padding:0 4px">VS</div>'
-   +'<div style="text-align:center;flex:1;min-width:0">'+teamLogo(t,'lg')
-   +'<div style="font-size:13.5px;font-weight:800;margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.name)+'</div>'
-   +'<div class="tiny">#'+esc(t.teamId||'')+'</div></div>'
-   +'</div></div>';
-  h+='<div class="field"><label>AMOUNT (\u20B9)</label><input id="ch-amt" class="input" inputmode="numeric" placeholder="e.g. 500"></div>'
-   +'<div class="row2" style="margin-top:10px"><div class="field"><label>DATE *</label><input id="ch-date" class="input" type="date" min="'+_cds+'"></div>'
-   +'<div class="field"><label>TIME *</label><select id="ch-time" class="input"><option>6:00 PM</option><option>7:00 PM</option><option selected>7:30 PM</option><option>8:00 PM</option><option>9:00 PM</option><option>10:00 PM</option></select></div></div>'
-   +'<div class="field" style="margin-top:10px"><label>GROUND *</label><input id="ch-ground" class="input" placeholder="e.g. Andheri Sports Complex"></div>'
-   +'<div class="field" style="margin-top:10px"><label>RULES</label><textarea id="ch-rules" class="input" rows="3" placeholder="e.g. 7-a-side &middot; 2 x 25 min &middot; no studs"></textarea></div>'
-   +'<div class="field" style="margin-top:10px"><label>DURATION (minutes)</label>'
-   +'<div class="row" style="gap:8px;align-items:center">'
-   +'<input id="ch-h1" class="input" inputmode="numeric" maxlength="3" value="20" style="text-align:center" oninput="durSync()">'
-   +'<span style="font-weight:900;color:var(--gray-2)">+</span>'
-   +'<input id="ch-br" class="input" inputmode="numeric" maxlength="3" value="5" style="text-align:center" oninput="durSync()">'
-   +'<span style="font-weight:900;color:var(--gray-2)">+</span>'
-   +'<input id="ch-h2" class="input" inputmode="numeric" maxlength="3" value="20" style="text-align:center" oninput="durSync()">'
-   +'</div>'
-   +'<div class="tiny" style="margin-top:6px">Half 1 + break + Half 2 &middot; <span id="ch-dur-total">20 + 5 + 20 = 45 min</span></div></div>'
-   +'<div style="height:210px"></div></div>';
-  h+='<div style="position:absolute;left:0;right:0;bottom:88px;padding:12px 16px;background:linear-gradient(to top,var(--navy) 74%,rgba(5,10,36,0))">'
-   +'<button class="btn primary block" onclick="sendChallengeFromPage(\''+t.id+'\')">'+I('flag',16)+' SEND CHALLENGE</button>'
-   +'<div class="tiny" style="margin-top:6px;text-align:center">'+(canChallenge()?'Confirm with your PIN to send.':'Your team staff (officers/leaders) must accept (60%) before it is sent.')+'</div>'
-   +'</div></div>';
-  return h;
-};
-function sendChallengeFromPage(tid){
-  var el=document.getElementById('ch-amt');
-  var rl=document.getElementById('ch-rules');
-  var rules=rl?String(rl.value||'').trim():'';
-  var dEl=document.getElementById('ch-date'),tEl=document.getElementById('ch-time'),gEl=document.getElementById('ch-ground');
-  var dateV=dEl?dEl.value:'',timeV=tEl?tEl.value:'',groundV=gEl?String(gEl.value||'').trim():'';
-  var durV=durText();
-  sendChallengeV2(tid,el?el.value:'0',rules,dateV,timeV,groundV,durV);
 }
 function challengeAmountSheet(tid){
   var t=T(tid);
@@ -3598,7 +3550,7 @@ SCREENS['team-profile']=function(p){
   if(memberOfThis){
     h+='<button class="btn primary block" onclick="goTab(\'team\')">'+I('users',16)+' OPEN MY TEAM</button>';
   }else if(inSomeTeam){
-    h+='<button class="btn primary block" onclick="nav(\'challenge-team\',{id:\''+t.id+'\'})">'+I('flag',16)+' CHALLENGE THIS TEAM</button>';
+    h+='<button class="btn primary block" onclick="challengeAmountSheet(\''+t.id+'\')">'+I('flag',16)+' CHALLENGE THIS TEAM</button>';
   }else if(pending){
     h+='<button class="btn secondary block" style="opacity:.7" disabled>'+I('clock',16)+' REQUEST PENDING</button>';
   }else{
