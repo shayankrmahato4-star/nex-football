@@ -2998,9 +2998,20 @@ function chSearch(v){
 }
 function challengeAmountSheet(tid){
   var t=T(tid);
+  var mt=myTeam();
   var _cd2=new Date();var _cds2=_cd2.getFullYear()+'-'+('0'+(_cd2.getMonth()+1)).slice(-2)+'-'+('0'+_cd2.getDate()).slice(-2);
   showSheet('<div class="sh-title">Challenge '+esc(t?t.name:'')+'</div>'
-  +'<div class="row" style="gap:12px;margin-bottom:12px">'+teamLogo(t,'sm')+'<div class="grow"><div class="tiny">Your team vs #'+esc(t?t.teamId:'')+'</div></div></div>'
+  +'<div class="row" style="align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px">'
+  +'<div style="text-align:center;flex:1;min-width:0">'
+  +'<div style="width:68px;height:68px;border-radius:50%;overflow:hidden;margin:0 auto;border:2px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.35)">'+teamLogo(mt,'lg')+'</div>'
+  +'<div class="tiny" style="margin-top:7px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(mt?mt.name:'')+'</div>'
+  +'<div class="tiny">YOUR TEAM</div></div>'
+  +'<div style="font-size:18px;font-weight:900;color:var(--goldy);flex-shrink:0;padding:0 2px">VS</div>'
+  +'<div style="text-align:center;flex:1;min-width:0">'
+  +'<div style="width:68px;height:68px;border-radius:50%;overflow:hidden;margin:0 auto;border:2px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.35)">'+teamLogo(t,'lg')+'</div>'
+  +'<div class="tiny" style="margin-top:7px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t?t.name:'')+'</div>'
+  +'<div class="tiny">#'+esc(t?t.teamId:'')+'</div></div>'
+  +'</div>'
 
   +'<div class="field"><label>AMOUNT (\u20B9)</label><input id="ch-amt" class="input" inputmode="numeric" placeholder="e.g. 500"></div>'
   +'<div class="row2" style="margin-top:10px"><div class="field"><label>DATE *</label><input id="ch-date" class="input" type="date" min="'+_cds2+'"></div>'
