@@ -1798,20 +1798,13 @@ SCREENS['tournament-details']=function(p){
   h+='</div>';
   h+='<div class="card"><div class="card-title">'+I('info',16)+' About</div><div class="muted" style="line-height:1.6">'+esc(tr.description)+'</div></div>';
   h+='<div class="card"><div class="card-title">'+I('list',16)+' Rules</div><div class="rules-box">'+esc(tr.rules)+'</div></div>';
-  h+='<div class="section-h">Teams ('+tr.teams.length+'/'+tr.maxTeams+')</div>'
-  +'<div class="card flat"><div class="tiny">Participating teams \u2014 tap VIEW to open a team.</div></div>'
-  ;
-  if(!tr.teams.length)h+='<div class="card flat"><div class="tiny">No teams joined yet. Be the first!</div></div>';
+  h+='<div class="card"><div class="card-title">'+I('users',16)+' Teams ('+tr.teams.length+'/'+tr.maxTeams+')</div>';
+  if(!tr.teams.length)h+='<div class="tiny">No teams joined yet. Be the first!</div>';
   tr.teams.forEach(function(tid,i){const t=T(tid);if(!t)return;
-    const isOrg=(t.id===tr.organizerTeam);
-    h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 13px">'
-     +'<div style="width:50px;height:50px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid '+(isOrg?'var(--goldy)':'var(--line)')+'">'+teamLogo(t,'sm')+'</div>'
-     +'<div class="grow" style="min-width:0"><div style="font-weight:800;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.name)+'</div>'
-     +'<div class="tiny">#'+esc(t.teamId||'')+(t.area?' &middot; '+esc(t.area):'')+'</div></div>'
-     +(isOrg?'<span class="badge gold">ORGANIZER</span>':'<span class="badge gray">#'+(i+1)+'</span>')
-     +'<button class="btn secondary sm" style="flex-shrink:0" onclick="nav(\'team-profile\',{id:\''+t.id+'\'})">VIEW</button>'
-    +'</div>';});
-  
+    h+='<div class="player-row" onclick="nav(\'team-profile\',{id:\''+t.id+'\'})">'+teamLogo(t,'sm')
+    +'<div class="grow"><div style="font-size:13.5px;font-weight:700">'+esc(t.name)+'</div><div class="tiny">'+esc(t.area)+'</div></div>'
+    +'<span class="'+(t.id===tr.organizerTeam?'badge gold':'badge gray')+'">'+(t.id===tr.organizerTeam?'ORGANIZER':'#'+(i+1))+'</span></div>';});
+  h+='</div>';
   h+='<div style="height:8px"></div>';
   if(tr.bracket&&tr.bracket.seed.length&&tr.bracket.published)h+='<button class=\"btn secondary block\" style=\"margin-bottom:10px\" onclick=\"nav(\'view-bracket\',{id:\''+tr.id+'\'})\">'+I('list',16)+' VIEW BRACKET</button>';
   if(canManage)h+='<button class=\"btn secondary block\" style=\"margin-bottom:10px\" onclick=\"nav(\'create-tournament\',{edit:\''+tr.id+'\'})\">'+I('edit',16)+' EDIT TOURNAMENT</button>';
