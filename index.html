@@ -631,8 +631,24 @@ function canChallenge(){return isLeader()||isActing();}
 function canCreateTournament(){return isLeader()||isActing();}
 function canPromoteToRole(role){if(isLeader())return true;if(isActing()&&(role===ROLE.OFFICER||role===ROLE.MEMBER||role===ROLE.ACTING))return true;return false;}
 function canManageTournament(tr){if(!tr)return false;const t=myTeam();if(!t)return false;if(tr.organizerTeam!==t.id)return false;return isStaff();}
-function avatar(p,cls){if(!p)return '<div class="avatar '+(cls||'')+'">?</div>';if(p.photo)return '<div class="avatar '+(cls||'')+'"><img src="'+p.photo+'" alt=""></div>';return '<div class="avatar '+(cls||'')+' av-'+(hashId(p.id)%8)+'">'+esc(p.initials)+'</div>';}
-function teamLogo(t,cls){if(!t)return '<div class="team-logo '+(cls||'')+'">?</div>';if(t.logo)return '<div class="team-logo '+(cls||'')+'"><img src="'+t.logo+'" alt=""></div>';return '<div class="team-logo '+(cls||'')+'" style="background:'+esc(t.color)+'">'+esc(t.initials)+'</div>';}
+/* ---- fast image URLs: Supabase storage transform (right size, cached) ---- */
+var IMG_THUMB_CACHE={};
+function imgThumb(url,w,q){
+  var u=String(url||'');
+  if(!u)return u;
+  if(u.indexOf('/storage/v1/object/public/')<0)return u;
+  var key=u+'|'+w;
+  if(IMG_THUMB_CACHE[key])return IMG_THUMB_CACHE[key];
+  var out=u.replace('/storage/v1/object/public/','/storage/v1/render/image/public/');
+  out=out+(out.indexOf('?')>=0?'&':'?')+'width='+w+'&quality='+(q||72)+'&resize=cover';
+  IMG_THUMB_CACHE[key]=out;
+  return out;
+}
+function lazyImg(url,w,extra){
+  return '<img src="'+imgThumb(url,w)+'" loading="lazy" decoding="async" alt=""'+(extra||'')+'>';
+}
+function avatar(p,cls){if(!p)return '<div class="avatar '+(cls||'')+'">?</div>';if(p.photo)return '<div class="avatar '+(cls||'')+'"><img src="'+imgThumb(p.photo,120)+'" loading="lazy" decoding="async" alt=""></div>';return '<div class="avatar '+(cls||'')+' av-'+(hashId(p.id)%8)+'">'+esc(p.initials)+'</div>';}
+function teamLogo(t,cls){if(!t)return '<div class="team-logo '+(cls||'')+'">?</div>';if(t.logo)return '<div class="team-logo '+(cls||'')+'"><img src="'+imgThumb(t.logo,140)+'" loading="lazy" decoding="async" alt=""></div>';return '<div class="team-logo '+(cls||'')+'" style="background:'+esc(t.color)+'">'+esc(t.initials)+'</div>';}
 function roleBadge(role){return '<span class="role-badge role-'+esc(role)+'">'+esc(roleName(role))+'</span>';}
 function roleName(r){return r===ROLE.LEADER?'LEADER':r===ROLE.ACTING?'ACTING LEADER':r===ROLE.OFFICER?'OFFICER':'MEMBER';}
 function statusBadge(st){const cls=st==='OPEN'?'ok':st==='LIVE'?'live':st==='FULL'?'gold':'gray';return '<span class="badge '+cls+'">'+esc(st)+'</span>';}
@@ -1258,7 +1274,7 @@ function grantLocation(allow){
 function tourBannerInner(tr){
   const org=T(tr.organizerTeam);
   let h='';
-  if(tr.banner)h='<img src="'+tr.banner+'" alt="">';
+  if(tr.banner)h='<img src="'+imgThumb(tr.banner,720,70)+'" loading="lazy" decoding="async" alt="">';
   else h='<div class="tb-name-big">'+esc(tr.name)+'</div>';
   if(org)h+='<div class=\"tb-logo-corner\">'+teamLogo(org,'sm')+'</div>';
   return h;
@@ -1776,7 +1792,7 @@ SCREENS['tournament-details']=function(p){
   +tourBannerInner(tr)
   +'<span class="tour-status">'+statusBadge(tr.status)+'</span></div>'
   +'<div class="tour-body"><div class="t-name">'+esc(tr.name)+'</div>'
-  +'<div class="t-meta" style="cursor:pointer" onclick="nav(\'team-profile\',{id:\''+(organizer?organizer.id:'')+'\'})">'+(organizer?('<div style="display:inline-block;width:18px;height:18px;border-radius:6px;vertical-align:-4px;margin-right:4px;overflow:hidden;background:'+(organizer.color||'#1A5BFF')+';font-size:8px;line-height:18px;text-align:center">'+(organizer.logo?('<img src="'+organizer.logo+'" style="width:100%;height:100%;object-fit:cover">'):(organizer.initials||'?'))+'</div>'):I('users',12))+' Organizer: '+esc(organizer?organizer.name:'')+'</div>'
+  +'<div class="t-meta" style="cursor:pointer" onclick="nav(\'team-profile\',{id:\''+(organizer?organizer.id:'')+'\'})">'+(organizer?('<div style="display:inline-block;width:18px;height:18px;border-radius:6px;vertical-align:-4px;margin-right:4px;overflow:hidden;background:'+(organizer.color||'#1A5BFF')+';font-size:8px;line-height:18px;text-align:center">'+(organizer.logo?('<img src="'+imgThumb(organizer.logo,80)+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover">'):(organizer.initials||'?'))+'</div>'):I('users',12))+' Organizer: '+esc(organizer?organizer.name:'')+'</div>'
   +'<div class="t-meta">'+I('pin',12)+' '+esc(tr.ground)+', '+esc(tr.area)+' ('+esc(tr.distance)+' km)</div>'
   +'<div class="t-meta">'+I('cal',12)+' '+dayOf(tr.date)+' &middot; '+esc(tr.startTime)+'</div>'
   +'<div class="t-meta">'+I('ruler',12)+' '+esc(eligibilityText(tr))+'</div></div>'
@@ -2261,7 +2277,7 @@ function sliderHTML(){
   if(!window.SLIDER_IMGS||!window.SLIDER_IMGS.length)return '';
   var h='<div id="home-slider" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;margin-bottom:14px;-webkit-overflow-scrolling:touch;scrollbar-width:none">';
   window.SLIDER_IMGS.forEach(function(s){
-    h+='<div style="flex:0 0 100%;scroll-snap-align:center'+(s.link?';cursor:pointer':'')+'"'+(s.link?' onclick="window.open(\''+esc(s.link)+'\',\'_blank\')"':'')+'><img src="'+esc(s.url)+'" style="width:100%;height:150px;object-fit:cover;border-radius:16px;border:1px solid var(--line-soft)"></div>';
+    h+='<div style="flex:0 0 100%;scroll-snap-align:center'+(s.link?';cursor:pointer':'')+'"'+(s.link?' onclick="window.open(\''+esc(s.link)+'\',\'_blank\')"':'')+'><img src="'+imgThumb(esc(s.url),720,70)+'" loading="lazy" decoding="async" style="width:100%;height:150px;object-fit:cover;border-radius:16px;border:1px solid var(--line-soft)"></div>';
   });
   h+='</div>';
   return h;
@@ -4131,18 +4147,18 @@ function reloadTable(t){
 function compressImageFile(file,cb){
   try{
     if(!file||!(/^image\//.test(file.type||''))){cb(null);return;}
-    if(file.size&&file.size<300000){cb(null);return;}
+    if(file.size&&file.size<120000){cb(null);return;}
     var img=new Image();
     var url=URL.createObjectURL(file);
     img.onload=function(){
       try{URL.revokeObjectURL(url);}catch(e){}
       try{
-        var MAX=1200;var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+        var MAX=1000;var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
         if(!w||!h){cb(null);return;}
         var sc=Math.min(1,MAX/Math.max(w,h));w=Math.round(w*sc);h=Math.round(h*sc);
         var cv=document.createElement('canvas');cv.width=w;cv.height=h;
         var cx=cv.getContext('2d');cx.drawImage(img,0,0,w,h);
-        cv.toBlob(function(blob){cb(blob||null);},'image/jpeg',0.85);
+        cv.toBlob(function(blob){cb(blob||null);},'image/jpeg',0.72);
       }catch(e){cb(null);}
     };
     img.onerror=function(){try{URL.revokeObjectURL(url);}catch(e){}cb(null);};
@@ -4162,7 +4178,7 @@ function uploadToSBNow(file,bucket,cb){
     var ext=(file.name||'img.jpg').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,'');
     if(!ext||ext.length>5)ext='jpg';
     var path=AUTH_UID+'/'+Date.now()+'.'+ext;
-    SB.storage.from(bucket).upload(path,file,{upsert:true,contentType:file.type||'image/*'}).then(function(res){
+    SB.storage.from(bucket).upload(path,file,{upsert:true,contentType:file.type||'image/*',cacheControl:'31536000'}).then(function(res){
       if(res.error){toast('Cloud upload failed \\u2014 saved locally','err');cb(null);return;}
       try{cb(SB.storage.from(bucket).getPublicUrl(path).data.publicUrl);}
       catch(e){cb(null);}
