@@ -1812,7 +1812,7 @@ SCREENS['tournament-details']=function(p){
   if(tr.prizeCount>=3)h+='<div class="prize-slot p3"><span class="ps-rank">3</span><div class="grow"><div style="font-weight:800">3rd place</div><div class="tiny">Bronze medals</div></div><span style="font-weight:800">'+esc(tr.prizes.third)+'</span></div>';
   if(tr.prizeCount>=4)h+='<div class="prize-slot p4"><span class="ps-rank">4</span><div class="grow"><div style="font-weight:800">4th place</div><div class="tiny">Merit certificates</div></div><span style="font-weight:800">'+esc(tr.prizes.fourth)+'</span></div>';
   h+='</div>';
-  h+='<div class="card"><div class="card-title">'+I('info',16)+' About</div><div class="muted" style="line-height:1.6">'+esc(tr.description)+'</div></div>';
+  
   h+='<div class="card"><div class="card-title">'+I('list',16)+' Rules</div><div class="rules-box">'+esc(tr.rules)+'</div></div>';
   h+='<div class="card"><div class="card-title">'+I('users',16)+' Teams ('+tr.teams.length+'/'+tr.maxTeams+')</div>';
   if(!tr.teams.length)h+='<div class="tiny">No teams joined yet. Be the first!</div>';
