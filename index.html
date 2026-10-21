@@ -1523,7 +1523,6 @@ SCREENS['team']=function(p){
     +'<input id="team-search" class="input" style="border:none;background:none;padding:12px 0;flex:1;min-width:0" autocomplete="off" placeholder="Search team by name or UID" value="'+esc(TEAM_SEARCH)+'" oninput="teamSearchInput(this.value)">'
     +'<button class="icon-btn" id="team-search-x" style="'+(TEAM_SEARCH?'':'display:none;')+'" onclick="teamSearchInput(\'\')">'+I('x',15)+'</button>'
     +'</div></div>'
-    +'<div class="card flat"><div class="row" style="gap:10px"><span style="color:var(--gold)">'+I('info',18)+'</span><div class="tiny">Request to join an existing squad, or create your own team and become its leader.</div></div></div>'
     +'<div class="section-h">All teams</div><div id="team-list">'+teamRowsHTML()+'</div>';
     h+='</div>'+bottomNavHTML('team')+'</div>';
     return h;
