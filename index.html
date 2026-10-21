@@ -1490,6 +1490,26 @@ SCREENS['matches']=function(p){
 };
 
 /* ================= TEAM ================= */
+/* ---- team search: matches name or UID, ignoring case and a leading # ---- */
+var TEAM_SEARCH='';
+function teamRowsHTML(){
+  var q=String(TEAM_SEARCH||'').trim().toLowerCase().replace(/^#/,'');
+  var list=(STATE.teams||[]).filter(function(t){
+    if(!q)return true;
+    var n=String(t.name||'').toLowerCase();
+    var u=String(t.teamId||'').toLowerCase().replace(/^#/,'');
+    return n.indexOf(q)>=0||u.indexOf(q)>=0;
+  });
+  if(!list.length)return '<div class="card flat"><div class="tiny" style="text-align:center">No team matches "'+esc(TEAM_SEARCH)+'".</div></div>';
+  return list.map(function(t){return teamCardHTML(t);}).join('');
+}
+function teamSearchInput(v){
+  TEAM_SEARCH=String(v||'');
+  var box=document.getElementById('team-list');
+  if(box)box.innerHTML=teamRowsHTML();
+  var x=document.getElementById('team-search-x');
+  if(x)x.style.display=TEAM_SEARCH?'':'none';
+}
 SCREENS['team']=function(p){
   const tab=(p&&p.tab)||'SQUAD';
   const team=myTeam();
@@ -1498,9 +1518,13 @@ SCREENS['team']=function(p){
     +'<div class="topbar">'+appLogoImg(40)+'<div class="grow"><div class="tb-title">Teams</div><div class="tb-sub">YOU ARE NOT IN A TEAM YET</div></div>'
     +'<button class="btn gold sm" onclick="nav(\'create-team\')">'+I('plus',14)+' CREATE</button></div>'
     +'<div class="screen-body">'
+    +'<div class="card flat" style="padding:4px 12px"><div class="row" style="gap:10px;align-items:center">'
+    +'<span style="color:var(--gray-2);flex-shrink:0">'+I('search',18)+'</span>'
+    +'<input id="team-search" class="input" style="border:none;background:none;padding:12px 0;flex:1;min-width:0" autocomplete="off" placeholder="Search team by name or UID" value="'+esc(TEAM_SEARCH)+'" oninput="teamSearchInput(this.value)">'
+    +'<button class="icon-btn" id="team-search-x" style="'+(TEAM_SEARCH?'':'display:none;')+'" onclick="teamSearchInput(\'\')">'+I('x',15)+'</button>'
+    +'</div></div>'
     +'<div class="card flat"><div class="row" style="gap:10px"><span style="color:var(--gold)">'+I('info',18)+'</span><div class="tiny">Request to join an existing squad, or create your own team and become its leader.</div></div></div>'
-    +'<div class="section-h">All teams</div>';
-    STATE.teams.forEach(function(t){h+=teamCardHTML(t);});
+    +'<div class="section-h">All teams</div><div id="team-list">'+teamRowsHTML()+'</div>';
     h+='</div>'+bottomNavHTML('team')+'</div>';
     return h;
   }
