@@ -617,7 +617,7 @@ function ageText(p){var a=ageOf(p);return (a==null?'-':String(a))+' yrs';}
 function dobMax(){var n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2);}
 function dobHint(id,hintId){var el=document.getElementById(id);var h=document.getElementById(hintId);if(!el||!h)return;var a=ageFromDob(el.value);h.textContent=(a==null?'':('Age: '+a+' years'));}
 
-function myTeam(){if(!STATE.currentUser)return null;const me=cur();if(!me)return null;for(const t of STATE.teams){if(t.members.some(m=>m.playerId===me.id))return t;}return null;}
+function myTeam(){if(!STATE.currentUser)return null;const me=cur();if(!me)return null;for(const t of STATE.teams){if(leftTeamId(t.id))continue;if(t.members.some(m=>m.playerId===me.id))return t;}return null;}
 function roleIn(team){if(!team||!STATE.currentUser)return null;const me=cur();if(!me)return null;const m=team.members.find(x=>x.playerId===me.id);return m?m.role:null;}
 function myRole(){return roleIn(myTeam());}
 function isLeader(){return myRole()===ROLE.LEADER;}
@@ -2800,6 +2800,7 @@ function confirmLeaveTeam(){
     else if(team.leader===STATE.currentUser){team.leader=team.members[0].playerId;team.members[0].role=ROLE.LEADER;}
     save();
     serverLeaveTeam(_tid);
+    try{if(typeof pushChanges==='function'){clearTimeout(SB_PUSH_TIMER);SB_DIRTY=false;pushChanges();}}catch(e){}
     toast('You left the team','ok');replace('team',{},true);
   }});
 }
@@ -4067,15 +4068,24 @@ function rowFor(table,e){
   }
   return null;
 }
-function isMemberOfTeam(t){var mp=MY_PLAYER_ID||(STATE&&STATE.currentUser);if(!t||!mp)return false;return (t.members||[]).some(function(m){return m.playerId===mp;});}
+function isMemberOfTeam(t){var mp=MY_PLAYER_ID||(STATE&&STATE.currentUser);if(!t||!mp)return false;if(leftTeamId(t.id))return false;return (t.members||[]).some(function(m){return m.playerId===mp;});}
 function myTeamEntity(){var mp=MY_PLAYER_ID||(STATE&&STATE.currentUser);if(!mp)return null;return STATE.teams.find(function(t){return isMemberOfTeam(t);})||null;}
+function wasMemberSnap(e){
+  try{
+    var mp=MY_PLAYER_ID||(STATE&&STATE.currentUser);
+    if(!e||!mp||!WORLD_SNAP||!WORLD_SNAP.teams)return false;
+    var prev=WORLD_SNAP.teams[e.id];if(!prev)return false;
+    var old=JSON.parse(prev);
+    return !!(old&&(old.members||[]).some(function(m){return m.playerId===mp;}));
+  }catch(err){return false;}
+}
 function canWriteEntity(table,e){
   var mp=MY_PLAYER_ID||(STATE&&STATE.currentUser);
   if(!mp)return false;
   var mt=myTeamEntity();
   switch(table){
     case 'players':return e.id===mp;
-    case 'teams':return isMemberOfTeam(e);
+    case 'teams':return isMemberOfTeam(e)||wasMemberSnap(e);
     case 'tournaments':return !!mt&&e.organizerTeam===mt.id;
     case 'matches':return (!!mt&&(e.teamA===mt.id||e.teamB===mt.id))||(!!mt&&STATE.tournaments.some(function(tr){return tr.id===e.tournament&&tr.organizerTeam===mt.id;}));
     case 'challenges':return !!mt&&(e.fromTeam===mt.id||e.toTeam===mt.id);
