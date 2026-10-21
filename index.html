@@ -150,7 +150,7 @@ select.input{appearance:none;-webkit-appearance:none}
 
 /* ===== AVATAR ===== */
 .avatar{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:14px;flex-shrink:0;overflow:hidden;background:linear-gradient(135deg,var(--blue),#123BB5);letter-spacing:.5px}
-.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar img{width:100%;height:100%;object-fit:cover;object-position:50% 20%}
 .avatar.sm{width:34px;height:34px;border-radius:10px;font-size:11px}
 .avatar.lg{width:64px;height:64px;border-radius:18px;font-size:18px}
 .avatar.xl{width:92px;height:92px;border-radius:26px;font-size:26px}
@@ -159,7 +159,7 @@ select.input{appearance:none;-webkit-appearance:none}
 .av-4{background:linear-gradient(135deg,#DC2626,#B91C1C)}.av-5{background:linear-gradient(135deg,#D97706,#B45309)}
 .av-6{background:linear-gradient(135deg,#DB2777,#BE185D)}.av-7{background:linear-gradient(135deg,#475569,#334155)}
 .team-logo{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px;flex-shrink:0;overflow:hidden}
-.team-logo img{width:100%;height:100%;object-fit:cover}
+.team-logo img{width:100%;height:100%;object-fit:cover;object-position:center}
 .team-logo.sm{width:36px;height:36px;border-radius:11px;font-size:12px}
 .team-logo.lg{width:60px;height:60px;border-radius:17px;font-size:18px}
 
@@ -647,7 +647,7 @@ function imgThumb(url,w,q){
 function lazyImg(url,w,extra){
   return '<img src="'+imgThumb(url,w)+'" loading="lazy" decoding="async" alt=""'+(extra||'')+'>';
 }
-function avatar(p,cls){if(!p)return '<div class="avatar '+(cls||'')+'">?</div>';if(p.photo)return '<div class="avatar '+(cls||'')+'"><img src="'+imgThumb(p.photo,120)+'" loading="lazy" decoding="async" alt=""></div>';return '<div class="avatar '+(cls||'')+' av-'+(hashId(p.id)%8)+'">'+esc(p.initials)+'</div>';}
+function avatar(p,cls){if(!p)return '<div class="avatar '+(cls||'')+'">?</div>';if(p.photo)return '<div class="avatar '+(cls||'')+'"><img src="'+imgThumb(p.photo,300)+'" loading="lazy" decoding="async" alt=""></div>';return '<div class="avatar '+(cls||'')+' av-'+(hashId(p.id)%8)+'">'+esc(p.initials)+'</div>';}
 function teamLogo(t,cls){if(!t)return '<div class="team-logo '+(cls||'')+'">?</div>';if(t.logo)return '<div class="team-logo '+(cls||'')+'"><img src="'+imgThumb(t.logo,140)+'" loading="lazy" decoding="async" alt=""></div>';return '<div class="team-logo '+(cls||'')+'" style="background:'+esc(t.color)+'">'+esc(t.initials)+'</div>';}
 function roleBadge(role){return '<span class="role-badge role-'+esc(role)+'">'+esc(roleName(role))+'</span>';}
 function roleName(r){return r===ROLE.LEADER?'LEADER':r===ROLE.ACTING?'ACTING LEADER':r===ROLE.OFFICER?'OFFICER':'MEMBER';}
