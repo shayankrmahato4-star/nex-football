@@ -2793,10 +2793,14 @@ function doEditTeam(){
 function confirmLeaveTeam(){
   showModal({title:'Leave team?',body:'You will lose your role and leave <b>'+esc(myTeam()?myTeam().name:'the team')+'</b>.'+(isLeader()?' Leadership will pass to another member.':''),ok:'Leave',destructive:true,onOk:function(){
     const team=myTeam();
+    const _tid=team.id;
+    markLeftTeam(_tid);
     team.members=team.members.filter(function(m){return m.playerId!==STATE.currentUser;});
     if(!team.members.length){STATE.teams=STATE.teams.filter(function(t){return t.id!==team.id;});}
     else if(team.leader===STATE.currentUser){team.leader=team.members[0].playerId;team.members[0].role=ROLE.LEADER;}
-    save();toast('You left the team','ok');replace('team',{},true);
+    save();
+    serverLeaveTeam(_tid);
+    toast('You left the team','ok');replace('team',{},true);
   }});
 }
 
@@ -2867,6 +2871,7 @@ function decideJoinRequest(rid,ok){
   save();toast(ok?'Player approved':'Request declined',ok?'ok':'err');render(false,true);
 }
 function requestJoinTeam(tid){
+  clearLeftTeam(tid);
   if(myTeam()){toast('Leave your current team before joining another','err');return;}
   const team=T(tid);
   if(team.members.length>=MAX_MEMBERS){toast('Team is full','err');return;}
@@ -3939,6 +3944,22 @@ function mapNotifRow(row){
   if(row.target_player)e=Object.assign({},e,{target:row.target_player});
   return e;
 }
+/* ---- leaving a team: server RPC + local tombstone so a refresh cannot re-add me ---- */
+var LEFT_TEAMS={};
+try{LEFT_TEAMS=JSON.parse(localStorage.getItem('nexLeftTeams')||'{}')||{};}catch(e){LEFT_TEAMS={};}
+function markLeftTeam(id){try{LEFT_TEAMS[id]=Date.now();localStorage.setItem('nexLeftTeams',JSON.stringify(LEFT_TEAMS));}catch(e){}}
+function clearLeftTeam(id){try{if(LEFT_TEAMS[id]){delete LEFT_TEAMS[id];localStorage.setItem('nexLeftTeams',JSON.stringify(LEFT_TEAMS));}}catch(e){}}
+function leftTeamId(id){return !!(id&&LEFT_TEAMS[id]);}
+function serverLeaveTeam(id){
+  try{
+    if(!(SB&&SB_ONLINE&&AUTH_UID&&id&&STATE.currentUser))return;
+    SB.rpc('leave_team',{p_team:id,p_player:STATE.currentUser}).then(function(res){
+      try{
+        if(res&&res.data&&res.data.ok){clearLeftTeam(id);if(WORLD_SNAP&&WORLD_SNAP.teams)delete WORLD_SNAP.teams[id];}
+      }catch(e){}
+    },function(){});
+  }catch(e){}
+}
 function loadWorld(cb){
   var reqs=WORLD_TABLES.map(function(w){
     if(w[1]==='notifications'){
@@ -4003,6 +4024,16 @@ function normalizeWorld(){
         t.members.forEach(function(m){if(m.playerId===STATE.currentUser)mine=m;});
         if(mine)mine.role=ROLE.LEADER;
       }
+    });
+    /* local 'I left this team' wins over the server copy (fixes re-join after refresh) */
+    (STATE.teams||[]).forEach(function(t){
+      if(!STATE.currentUser||!leftTeamId(t.id))return;
+      var still=(t.members||[]).some(function(m){return m.playerId===STATE.currentUser;});
+      if(!still){clearLeftTeam(t.id);return;}
+      t.members=(t.members||[]).filter(function(m){return m.playerId!==STATE.currentUser;});
+      if(!t.members.length)return;
+      if(t.leader===STATE.currentUser){t.leader=t.members[0].playerId;t.members[0].role=ROLE.LEADER;}
+      serverLeaveTeam(t.id);
     });
     STATE.teams=(STATE.teams||[]).filter(function(t){return t.members&&t.members.length&&t.leader&&P(t.leader);});
     if(typeof NEX_LOGO_PNG!=='undefined'&&NEX_LOGO_PNG){STATE.teams.forEach(function(t){if(!t.logo)t.logo=NEX_LOGO_PNG;});}
