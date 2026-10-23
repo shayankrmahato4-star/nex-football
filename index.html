@@ -1386,7 +1386,6 @@ SCREENS['home']=function(){
   const openTours=STATE.tournaments.filter(function(t){return tourVisible(t)&&t.status==='OPEN';});
   const liveMatch=STATE.matches.filter(function(m){return m.status==='LIVE';});
   const upMatch=myUpcomingMatches();
-  const qa1=(team?"goTab('team')":"nav('create-team')");
   const qa2=((team&&isStaff())?"nav('team-join-requests')":"goTab('team')");
   let h='<div class="screen no-anim"><div class="screen-body">';
   /* ---- greeting header ---- */
@@ -1405,7 +1404,7 @@ SCREENS['home']=function(){
   }
   /* ---- quick actions (create team / request / challenge) ---- */
   h+='<div class="section-h">Quick actions</div><div class="quick-grid">'
-   +'<button class="quick-opt" onclick="'+qa1+'"><span class="q-ico">'+I('users',19)+'</span>CREATE TEAM</button>'
+   +'<button class="quick-opt" onclick="goTab(\'discover\')"><span class="q-ico">'+I('search',19)+'</span>DISCOVER</button>'
    +'<button class="quick-opt" onclick="'+qa2+'"><span class="q-ico">'+I('send',19)+'</span>REQUEST</button>'
    +'<button class="quick-opt" onclick="nav(\'challenges\')"><span class="q-ico">'+I('flag',19)+'</span>CHALLENGE</button>'
    +'</div>';
