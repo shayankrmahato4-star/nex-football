@@ -67,6 +67,18 @@ input,select,textarea{font-family:inherit}
 .card .card-title{font-size:15px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .card .card-title .ico{color:var(--gold)}
 
+/* ===== SIDE-BY-SIDE TOURNAMENT GRID ===== */
+.tour-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.tour-grid .tour-card{margin-bottom:0}
+.tour-grid .tour-banner{height:92px}
+.tour-grid .tour-body{padding:10px}
+.tour-grid .t-name{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tour-grid .t-meta{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tour-grid .tour-foot{padding:8px 10px;display:block}
+.tour-grid .t-entry{font-size:12.5px;display:block}
+.tour-grid .t-count{font-size:10px;display:block;margin-top:3px}
+.tour-grid .tour-status{font-size:9px;padding:3px 7px}
+.tour-grid .tb-logo-c{width:30px;height:30px}
 /* ===== BUTTONS ===== */
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 18px;border-radius:14px;border:none;font-size:15px;font-weight:700;letter-spacing:.2px;background:var(--navy-3);color:#E8EDF5;transition:transform .15s var(--ease)}
 .btn:active{transform:scale(.96)}
@@ -1400,8 +1412,9 @@ SCREENS['home']=function(){
   /* ---- open tournaments ---- */
   const openList=(typeof recTournaments==='function'?recTournaments():openTours).slice(0,3);
   if(openList.length){
-    h+='<div class="section-h">Open tournaments</div>';
-    openList.forEach(function(t){h+=tourCardHTML(t);});
+    h+='<div class="section-h">Open tournaments</div><div class="tour-grid">';
+    openList.forEach(function(t){h+=tourCardHTML(t,true);});
+    h+='</div>';
   }
   /* ---- upcoming match ---- */
   if(upMatch.length){
