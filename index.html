@@ -871,11 +871,11 @@ function bottomNavHTML(active){
   function item(tab,label,icon){
     return '<button class="nav-item '+(active===tab?'active':'')+'" onclick="goTab(\''+tab+'\')">'
     +(active===tab?'<span class="nav-glow"></span>':'')+I(icon,21)+'<span>'+label+'</span>'
-    +(tab==='profile'&&unread>0?'<span class="nav-dot"></span>':'')+'</button>';
+    +((tab==='profile'||tab==='messages')&&unread>0?'<span class="nav-dot"></span>':'')+'</button>';
   }
   return '<nav class="bottom-nav">'
   +item('home','HOME','home')+item('tourneys','TOURNAMENTS','trophy')+item('team','TEAM','users')
-  +item('profile','PROFILE','user')
+  +item('messages','MESSAGES','mail')+item('profile','PROFILE','user')
   +'</nav>';
 }
 function fabHTML(){
@@ -3576,6 +3576,46 @@ SCREENS['create-tournament-blocked']=function(){
 };
 
 /* ================= NOTIFICATIONS ================= */
+SCREENS['messages']=function(){
+  const me=cur(),team=myTeam();
+  const notifs=(STATE.notifications||[]).slice(0,12);
+  const reqs=team?(STATE.teamJoinRequests||[]).filter(function(r){return r.teamId===team.id&&r.status==='PENDING';}):[];
+  const chs=team?(STATE.challenges||[]).filter(function(c){return c.toTeam===team.id&&c.status==='PENDING';}):[];
+  let h='<div class="screen">'+topbar('Messages','YOUR INBOX')+'<div class="screen-body">';
+  h+='<div class="quick-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:8px">'
+   +'<button class="quick-opt" onclick="nav(\'notifications\')"><span class="q-ico">'+I('bell',22)+'</span>NOTIFICATIONS'+(unreadCount()?' ('+unreadCount()+')':'')+'</button>'
+   +'<button class="quick-opt" onclick="nav(\'challenges\')"><span class="q-ico">'+I('flag',22)+'</span>CHALLENGES</button>'
+   +'</div>';
+  if(reqs.length){
+    h+='<div class="section-h">Join requests ('+reqs.length+')</div>';
+    reqs.forEach(function(r){
+      const pl=P(r.playerId);
+      h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px" onclick="nav(\'team-join-requests\')">'
+       +(pl?avatar(pl,'sm'):'')+'<div class="grow" style="min-width:0"><div style="font-weight:800;font-size:13.5px">'+esc(pl?pl.name:'Player')+'</div>'
+       +'<div class="tiny">wants to join '+esc(team?team.name:'your team')+'</div></div>'+I('fwd',15)+'</div>';
+    });
+  }
+  if(chs.length){
+    h+='<div class="section-h">Challenges ('+chs.length+')</div>';
+    chs.forEach(function(c){
+      const ft=T(c.fromTeam);
+      h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px" onclick="nav(\'challenges\')">'
+       +(ft?teamLogo(ft,'sm'):'')+'<div class="grow" style="min-width:0"><div style="font-weight:800;font-size:13.5px">'+esc(ft?ft.name:'Team')+'</div>'
+       +'<div class="tiny">challenged you'+(c.amount?' &middot; '+fmt(c.amount):'')+'</div></div>'+I('fwd',15)+'</div>';
+    });
+  }
+  h+='<div class="section-h">Recent</div>';
+  if(!notifs.length)h+=emptyState('mail','No messages yet','Requests, challenges and alerts will show up here.');
+  notifs.forEach(function(n){
+    h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px'+(n.unread?';border-color:rgba(255,193,7,.35)':'')+'" onclick="nav(\'notifications\')">'
+     +'<span class="n-ico" style="flex-shrink:0">'+I(n.icon||'info',18)+'</span>'
+     +'<div class="grow" style="min-width:0"><div style="font-weight:700;font-size:13.5px">'+esc(n.title)+'</div>'
+     +'<div class="tiny" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(n.body)+'</div></div>'
+     +'<div class="tiny" style="flex-shrink:0">'+dayOf(n.time)+'</div></div>';
+  });
+  h+='</div>'+fabHTML()+bottomNavHTML('messages')+'</div>';
+  return h;
+};
 SCREENS['notifications']=function(){
   let h='<div class="screen">'+topbar('Notifications',STATE.notifications.filter(function(n){return n.unread;}).length+' UNREAD')+'<div class="screen-body">';
   if(!STATE.notifications.length)h+=emptyState('bell','All caught up','Notifications will appear here.');
