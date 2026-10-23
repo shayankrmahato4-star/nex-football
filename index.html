@@ -3576,46 +3576,264 @@ SCREENS['create-tournament-blocked']=function(){
 };
 
 /* ================= NOTIFICATIONS ================= */
+/* ================= NEX MESSAGING (Supabase-first, AWS-replaceable) =================
+   Layer 1: crypto (client-side E2EE, WebCrypto)  ·  Layer 2: repositories  ·  Layer 3: UI
+   NOTE (honest): keys live in localStorage in this web demo. Android Keystore
+   storage is required for production and is a native-shell task. */
+var CHAT_DEVICE=(function(){try{var d=localStorage.getItem('nexChatDevice');if(!d){d='d'+Date.now()+Math.floor(Math.random()*9999);localStorage.setItem('nexChatDevice',d);}return d;}catch(e){return 'd1';}})();
+var CHAT_KEYPAIR=null,CHAT_PUB_CACHE={},CHAT_SUBS={};
+function b64buf(buf){var b=new Uint8Array(buf),s='';for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s);}
+function unb64(str){var bin=atob(str),out=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out;}
+async function chatEnsureKeys(){
+  if(CHAT_KEYPAIR&&CHAT_KEYPAIR.publicJwk)return CHAT_KEYPAIR;
+  try{
+    var raw=localStorage.getItem('nexChatPriv'),pub=localStorage.getItem('nexChatPub');
+    if(raw&&pub){
+      var priv=await crypto.subtle.importKey('jwk',JSON.parse(raw),{name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']);
+      CHAT_KEYPAIR={privateKey:priv,publicJwk:JSON.parse(pub)};
+      return CHAT_KEYPAIR;
+    }
+  }catch(e){}
+  var kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']);
+  var privJwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
+  var pubJwk=await crypto.subtle.exportKey('jwk',kp.publicKey);
+  try{localStorage.setItem('nexChatPriv',JSON.stringify(privJwk));localStorage.setItem('nexChatPub',JSON.stringify(pubJwk));}catch(e){}
+  CHAT_KEYPAIR={privateKey:kp.privateKey,publicJwk:pubJwk};
+  try{
+    if(SB&&SB_ONLINE&&STATE.currentUser)
+      SB.from('chat_keys').upsert({player_id:STATE.currentUser,device_id:CHAT_DEVICE,public_key:JSON.stringify(pubJwk)},{onConflict:'player_id,device_id'}).then(function(){},function(){});
+  }catch(e){}
+  return CHAT_KEYPAIR;
+}
+async function chatOtherPub(playerId){
+  if(CHAT_PUB_CACHE[playerId])return CHAT_PUB_CACHE[playerId];
+  var res=await SB.from('chat_keys').select('public_key').eq('player_id',playerId).limit(1);
+  if(res.error||!res.data||!res.data.length)return null;
+  var jwk=JSON.parse(res.data[0].public_key);
+  CHAT_PUB_CACHE[playerId]=jwk;
+  return jwk;
+}
+async function chatSharedKey(otherJwk){
+  var mine=await chatEnsureKeys();
+  var pub=await crypto.subtle.importKey('jwk',otherJwk,{name:'ECDH',namedCurve:'P-256'},false,[]);
+  return crypto.subtle.deriveKey({name:'ECDH',public:pub},mine.privateKey,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function chatEncrypt(text,otherJwk){
+  var key=await chatSharedKey(otherJwk);
+  var iv=crypto.getRandomValues(new Uint8Array(12));
+  var ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,new TextEncoder().encode(text));
+  return {ciphertext:b64buf(ct),iv:b64buf(iv)};
+}
+async function chatDecrypt(ciphertext,iv,otherJwk){
+  var key=await chatSharedKey(otherJwk);
+  var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(iv)},key,unb64(ciphertext));
+  return new TextDecoder().decode(pt);
+}
+/* ---------- repositories (swap these for AWS later) ---------- */
+var ConversationRepo={
+  async list(){
+    var me=STATE.currentUser;if(!me)return [];
+    var p=await SB.from('conversation_participants').select('conversation_id,last_read_at').eq('player_id',me);
+    if(p.error||!p.data||!p.data.length)return [];
+    var ids=p.data.map(function(r){return r.conversation_id;});
+    var parts=await SB.from('conversation_participants').select('conversation_id,player_id').in('conversation_id',ids);
+    var out=[];
+    for(var i=0;i<ids.length;i++){
+      var row=p.data[i];
+      var others=(parts.data||[]).filter(function(x){return x.conversation_id===row.conversation_id&&x.player_id!==me;});
+      out.push({id:row.conversation_id,last_read_at:row.last_read_at,other:others.length?others[0].player_id:null});
+    }
+    return out;
+  },
+  async create(otherPlayerId){
+    var me=STATE.currentUser;
+    var c=await SB.from('conversations').insert({kind:'dm',created_by:me}).select().single();
+    if(c.error)throw c.error;
+    var conv=c.data.id;
+    await SB.from('conversation_participants').insert([{conversation_id:conv,player_id:me},{conversation_id:conv,player_id:otherPlayerId}]);
+    return conv;
+  },
+  async findWith(otherPlayerId){
+    var mine=await this.list();
+    for(var i=0;i<mine.length;i++)if(mine[i].other===otherPlayerId)return mine[i].id;
+    return null;
+  }
+};
+var MessagingRepo={
+  async fetch(convId,limit){
+    var r=await SB.from('messages').select('*').eq('conversation_id',convId).order('created_at',{ascending:false}).limit(limit||40);
+    if(r.error)throw r.error;
+    return (r.data||[]).reverse();
+  },
+  async send(convId,text,otherPub){
+    var me=STATE.currentUser;
+    var enc=await chatEncrypt(text,otherPub);
+    var r=await SB.from('messages').insert({conversation_id:convId,sender_id:me,ciphertext:enc.ciphertext,iv:enc.iv}).select().single();
+    if(r.error)throw r.error;
+    return r.data;
+  },
+  async markDelivered(convId){try{await SB.from('messages').update({delivered_at:new Date().toISOString()}).eq('conversation_id',convId).neq('sender_id',STATE.currentUser).is('delivered_at',null);}catch(e){}},
+  async markRead(convId){
+    try{
+      await SB.from('messages').update({read_at:new Date().toISOString()}).eq('conversation_id',convId).neq('sender_id',STATE.currentUser).is('read_at',null);
+      await SB.from('conversation_participants').update({last_read_at:new Date().toISOString()}).eq('conversation_id',convId).eq('player_id',STATE.currentUser);
+    }catch(e){}
+  },
+  subscribe(convId,cb){
+    if(CHAT_SUBS[convId])return;
+    try{
+      var ch=SB.channel('conv-'+convId)
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+convId},function(p){cb(p.new);})
+        .subscribe();
+      CHAT_SUBS[convId]=ch;
+    }catch(e){}
+  },
+  unsubscribe(convId){
+    try{if(CHAT_SUBS[convId]){SB.removeChannel(CHAT_SUBS[convId]);delete CHAT_SUBS[convId];}}catch(e){}
+  }
+};
+var AttachmentRepo={ uploadEncryptedAttachment:async function(){throw new Error('not_implemented');}, downloadEncryptedAttachment:async function(){throw new Error('not_implemented');} };
+var CallService={ startCall:async function(){throw new Error('setup_required');}, acceptCall:async function(){throw new Error('setup_required');}, rejectCall:async function(){throw new Error('setup_required');}, endCall:async function(){throw new Error('setup_required');} };
+
 SCREENS['messages']=function(){
-  const me=cur(),team=myTeam();
-  const notifs=(STATE.notifications||[]).slice(0,12);
-  const reqs=team?(STATE.teamJoinRequests||[]).filter(function(r){return r.teamId===team.id&&r.status==='PENDING';}):[];
-  const chs=team?(STATE.challenges||[]).filter(function(c){return c.toTeam===team.id&&c.status==='PENDING';}):[];
-  let h='<div class="screen">'+topbar('Messages','YOUR INBOX')+'<div class="screen-body">';
-  h+='<div class="quick-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:8px">'
-   +'<button class="quick-opt" onclick="nav(\'notifications\')"><span class="q-ico">'+I('bell',22)+'</span>NOTIFICATIONS'+(unreadCount()?' ('+unreadCount()+')':'')+'</button>'
-   +'<button class="quick-opt" onclick="nav(\'challenges\')"><span class="q-ico">'+I('flag',22)+'</span>CHALLENGES</button>'
-   +'</div>';
-  if(reqs.length){
-    h+='<div class="section-h">Join requests ('+reqs.length+')</div>';
-    reqs.forEach(function(r){
-      const pl=P(r.playerId);
-      h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px" onclick="nav(\'team-join-requests\')">'
-       +(pl?avatar(pl,'sm'):'')+'<div class="grow" style="min-width:0"><div style="font-weight:800;font-size:13.5px">'+esc(pl?pl.name:'Player')+'</div>'
-       +'<div class="tiny">wants to join '+esc(team?team.name:'your team')+'</div></div>'+I('fwd',15)+'</div>';
-    });
-  }
-  if(chs.length){
-    h+='<div class="section-h">Challenges ('+chs.length+')</div>';
-    chs.forEach(function(c){
-      const ft=T(c.fromTeam);
-      h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px" onclick="nav(\'challenges\')">'
-       +(ft?teamLogo(ft,'sm'):'')+'<div class="grow" style="min-width:0"><div style="font-weight:800;font-size:13.5px">'+esc(ft?ft.name:'Team')+'</div>'
-       +'<div class="tiny">challenged you'+(c.amount?' &middot; '+fmt(c.amount):'')+'</div></div>'+I('fwd',15)+'</div>';
-    });
-  }
-  h+='<div class="section-h">Recent</div>';
-  if(!notifs.length)h+=emptyState('mail','No messages yet','Requests, challenges and alerts will show up here.');
-  notifs.forEach(function(n){
-    h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px'+(n.unread?';border-color:rgba(255,193,7,.35)':'')+'" onclick="nav(\'notifications\')">'
-     +'<span class="n-ico" style="flex-shrink:0">'+I(n.icon||'info',18)+'</span>'
-     +'<div class="grow" style="min-width:0"><div style="font-weight:700;font-size:13.5px">'+esc(n.title)+'</div>'
-     +'<div class="tiny" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(n.body)+'</div></div>'
-     +'<div class="tiny" style="flex-shrink:0">'+dayOf(n.time)+'</div></div>';
-  });
-  h+='</div>'+fabHTML()+bottomNavHTML('messages')+'</div>';
+  var me=STATE.currentUser;
+  var h='<div class="screen">'+topbar('Messages','END-TO-END ENCRYPTED')+'<div class="screen-body">';
+  h+='<div class="card flat" style="display:flex;align-items:center;gap:10px">'
+   +'<span style="color:var(--gray-2);flex-shrink:0">'+I('search',18)+'</span>'
+   +'<input id="chat-search" class="input" style="border:none;background:none;padding:10px 0;flex:1" placeholder="Search conversations" value="'+esc(CHAT_SEARCH)+'" oninput="chatSearchInput(this.value)">'
+   +'<button class="btn gold sm" style="flex-shrink:0" onclick="nav(\'new-chat\')">'+I('plus',14)+' NEW</button>'
+   +'</div>'
+   +'<div class="card flat" style="display:flex;gap:10px;align-items:center"><span style="color:var(--gold);flex-shrink:0">'+I('lock',16)+'</span>'
+   +'<div class="tiny">Messages are encrypted on your device before they are sent. The server stores only ciphertext.</div></div>'
+   +'<div id="chat-list"><div class="tiny" style="text-align:center;padding:20px">Loading conversations\u2026</div></div>'
+   +'</div>'+fabHTML()+bottomNavHTML('messages')+'</div>';
   return h;
 };
+var CHAT_SEARCH='';
+function chatSearchInput(v){CHAT_SEARCH=String(v||'');chatRenderList();}
+function chatPeerName(pid){var p=P(pid);return p?p.name:'Player';}
+function chatPeerAvatar(pid,cls){var p=P(pid);return p?avatar(p,cls||'sm'):'';}
+function chatRenderList(){
+  var box=document.getElementById('chat-list');if(!box)return;
+  ConversationRepo.list().then(function(rows){
+    rows.sort(function(a,b){return (b.last_time||0)-(a.last_time||0);});
+    var q=CHAT_SEARCH.trim().toLowerCase();
+    var list=rows.filter(function(r){return !q||chatPeerName(r.other).toLowerCase().indexOf(q)>=0;});
+    if(!list.length){box.innerHTML='<div class="card flat"><div class="tiny" style="text-align:center;padding:10px">No conversations yet \u2014 tap NEW to start one.</div></div>';return;}
+    var done=0;var html=new Array(list.length);
+    list.forEach(function(r,i){
+      MessagingRepo.fetch(r.id,1).then(function(ms){
+        var last=ms.length?ms[ms.length-1]:null;
+        var preview='No messages yet';
+        var t=last?new Date(last.created_at).getTime():0;
+        var finish=function(text){
+          html[i]='<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px" onclick="nav(\'chat\',{id:\''+r.id+'\'})">'
+            +chatPeerAvatar(r.other)+'<div class="grow" style="min-width:0"><div style="font-weight:800;font-size:14px">'+esc(chatPeerName(r.other))+'</div>'
+            +'<div class="tiny" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(text)+'</div></div>'
+            +'<div class="tiny" style="flex-shrink:0">'+(t?dayOf(t):'')+'</div></div>';
+          if(++done===list.length)box.innerHTML=html.join('');
+        };
+        if(!last){finish(preview);return;}
+        var other=last.sender_id===STATE.currentUser?r.other:last.sender_id;
+        chatOtherPub(other).then(function(pub){
+          if(!pub){finish('\u2022\u2022\u2022 encrypted');return;}
+          chatDecrypt(last.ciphertext,last.iv,pub).then(function(txt){finish((last.sender_id===STATE.currentUser?'You: ':'')+txt);},function(){finish('\u2022\u2022\u2022 could not decrypt');});
+        },function(){finish('\u2022\u2022\u2022 encrypted');});
+      },function(){html[i]='';if(++done===list.length)box.innerHTML=html.join('');});
+    });
+  },function(){
+    box.innerHTML='<div class="card flat"><div class="tiny" style="text-align:center;padding:10px">Could not load conversations. Check your connection.</div></div>';
+  });
+}
+SCREENS_AFTER['messages']=function(){try{chatEnsureKeys().then(function(){chatRenderList();},function(){chatRenderList();});}catch(e){chatRenderList();}};
+
+/* ================= NEW CHAT ================= */
+SCREENS['new-chat']=function(){
+  var me=STATE.currentUser;
+  var people=(STATE.players||[]).filter(function(p){return p&&p.id!==me;});
+  var h='<div class="screen">'+topbar('New message','PICK A PLAYER')+'<div class="screen-body">';
+  if(!people.length)h+=emptyState('users','No players yet','Other players will appear here.');
+  people.slice(0,60).forEach(function(p){
+    h+='<div class="card" style="display:flex;align-items:center;gap:12px;padding:12px" onclick="startChat(\''+p.id+'\')">'
+     +avatar(p,'sm')+'<div class="grow" style="min-width:0"><div style="font-weight:800;font-size:14px">'+esc(p.name)+'</div>'
+     +'<div class="tiny">#'+esc(p.uid||'')+(p.area?' &middot; '+esc(p.area):'')+'</div></div>'+I('fwd',15)+'</div>';
+  });
+  h+='</div>'+bottomNavHTML('messages')+'</div>';
+  return h;
+};
+function startChat(pid){
+  toast('Opening chat\u2026','ok');
+  ConversationRepo.findWith(pid).then(function(existing){
+    if(existing){nav('chat',{id:existing});return;}
+    ConversationRepo.create(pid).then(function(conv){nav('chat',{id:conv});},function(){toast('Could not start the chat','err');});
+  },function(){toast('Could not start the chat','err');});
+}
+
+/* ================= CHAT THREAD ================= */
+SCREENS['chat']=function(p){
+  var convId=p&&p.id;
+  CHAT_OPEN=convId;
+  var h='<div class="screen">'+topbar('Chat','END-TO-END ENCRYPTED')+'<div class="screen-body" id="chat-body">'
+   +'<div class="tiny" style="text-align:center;padding:18px">Decrypting\u2026</div></div>';
+  h+='<div style="position:absolute;left:0;right:0;bottom:88px;padding:10px 14px;background:linear-gradient(to top,var(--navy) 78%,rgba(5,10,36,0))">'
+   +'<div class="row" style="gap:8px;align-items:flex-end">'
+   +'<textarea id="chat-input" class="input" rows="1" placeholder="Message\u2026" style="flex:1;resize:none;max-height:110px"></textarea>'
+   +'<button class="btn gold sm" style="flex-shrink:0;width:52px;height:48px" onclick="sendChatMsg()">'+I('send',18)+'</button>'
+   +'</div></div></div>';
+  return h;
+};
+var CHAT_OPEN=null,CHAT_PEER=null;
+SCREENS_AFTER['chat']=function(){
+  var convId=CHAT_OPEN;if(!convId)return;
+  chatEnsureKeys().then(function(){loadChat(convId);},function(){loadChat(convId);});
+};
+function loadChat(convId){
+  ConversationRepo.list().then(function(rows){
+    var row=rows.filter(function(r){return r.id===convId;})[0];
+    CHAT_PEER=row?row.other:null;
+    if(!CHAT_PEER){document.getElementById('chat-body').innerHTML='<div class="tiny" style="text-align:center;padding:20px">Conversation not found.</div>';return;}
+    return MessagingRepo.fetch(convId,60).then(function(ms){
+      renderChat(ms);
+      MessagingRepo.markDelivered(convId);MessagingRepo.markRead(convId);
+      MessagingRepo.subscribe(convId,function(m){
+        if(m&&m.sender_id!==STATE.currentUser){
+          MessagingRepo.fetch(convId,60).then(function(all){renderChat(all);MessagingRepo.markRead(convId);});
+        }
+      });
+    });
+  });
+}
+function renderChat(ms){
+  var body=document.getElementById('chat-body');if(!body)return;
+  chatOtherPub(CHAT_PEER).then(function(pub){
+    var pending=ms.length,html=new Array(ms.length);
+    if(!ms.length){body.innerHTML='<div class="tiny" style="text-align:center;padding:24px">No messages yet. Say hello \u2014 it is encrypted before sending.</div>';return;}
+    ms.forEach(function(m,i){
+      var mine=m.sender_id===STATE.currentUser;
+      var paint=function(txt){
+        var tick=mine?(' <span style="opacity:.75">'+(m.read_at?'\u2713\u2713 read':(m.delivered_at?'\u2713\u2713':' \u2713'))+'</span>'):'';
+        html[i]='<div style="display:flex;justify-content:'+(mine?'flex-end':'flex-start')+';margin:6px 0">'
+         +'<div style="max-width:78%;padding:10px 13px;border-radius:16px;font-size:14px;line-height:1.4;'
+         +(mine?'background:linear-gradient(135deg,var(--blue),var(--blue-2));color:#fff;border-bottom-right-radius:5px':'background:var(--navy-2);border:1px solid var(--line-soft);color:#E8EDF5;border-bottom-left-radius:5px')+'">'
+         +esc(txt)+'<div class="tiny" style="margin-top:3px;opacity:.8">'+new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+tick+'</div></div></div>';
+        if(--pending===0)body.innerHTML=html.join('');
+      };
+      if(!pub){paint('\u2022\u2022\u2022 encrypted (no key)');return;}
+      chatDecrypt(m.ciphertext,m.iv,pub).then(function(t){paint(t);},function(){paint('\u2022\u2022\u2022 could not decrypt');});
+    });
+  });
+}
+function sendChatMsg(){
+  var el=document.getElementById('chat-input');if(!el)return;
+  var text=String(el.value||'').trim();if(!text||!CHAT_OPEN||!CHAT_PEER)return;
+  el.value='';
+  chatOtherPub(CHAT_PEER).then(function(pub){
+    if(!pub){toast('This player has not opened Messages yet \u2014 no key to encrypt to','err');return;}
+    MessagingRepo.send(CHAT_OPEN,text,pub).then(function(){
+      return MessagingRepo.fetch(CHAT_OPEN,60);
+    }).then(function(all){renderChat(all);},function(){toast('Could not send','err');});
+  },function(){toast('Could not send','err');});
+}
 SCREENS['notifications']=function(){
   let h='<div class="screen">'+topbar('Notifications',STATE.notifications.filter(function(n){return n.unread;}).length+' UNREAD')+'<div class="screen-body">';
   if(!STATE.notifications.length)h+=emptyState('bell','All caught up','Notifications will appear here.');
