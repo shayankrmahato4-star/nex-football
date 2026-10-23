@@ -67,18 +67,14 @@ input,select,textarea{font-family:inherit}
 .card .card-title{font-size:15px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .card .card-title .ico{color:var(--gold)}
 
-/* ===== SIDE-BY-SIDE TOURNAMENT GRID ===== */
-.tour-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-.tour-grid .tour-card{margin-bottom:0}
-.tour-grid .tour-banner{height:92px}
-.tour-grid .tour-body{padding:10px}
-.tour-grid .t-name{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tour-grid .t-meta{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tour-grid .tour-foot{padding:8px 10px;display:block}
-.tour-grid .t-entry{font-size:12.5px;display:block}
-.tour-grid .t-count{font-size:10px;display:block;margin-top:3px}
-.tour-grid .tour-status{font-size:9px;padding:3px 7px}
-.tour-grid .tb-logo-c{width:30px;height:30px}
+/* ===== TOURNAMENT RAIL (slides right) + see more ===== */
+.tour-rail{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;padding-bottom:8px;margin:0 -16px;padding-left:16px;padding-right:16px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tour-rail::-webkit-scrollbar{display:none}
+.tour-rail>*{flex:0 0 280px;max-width:280px;scroll-snap-align:start}
+.tour-rail .tour-card{margin-bottom:0}
+.see-more{background:none;border:none;color:var(--gold);font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:4px;padding:4px 0}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px}
+.sec-head .section-h{margin:0}
 /* ===== BUTTONS ===== */
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 18px;border-radius:14px;border:none;font-size:15px;font-weight:700;letter-spacing:.2px;background:var(--navy-3);color:#E8EDF5;transition:transform .15s var(--ease)}
 .btn:active{transform:scale(.96)}
@@ -1412,8 +1408,10 @@ SCREENS['home']=function(){
   /* ---- open tournaments ---- */
   const openList=(typeof recTournaments==='function'?recTournaments():openTours).slice(0,3);
   if(openList.length){
-    h+='<div class="section-h">Open tournaments</div><div class="tour-grid">';
-    openList.forEach(function(t){h+=tourCardHTML(t,true);});
+    h+='<div class="sec-head"><div class="section-h">Open tournaments</div>'
+     +'<button class="see-more" onclick="goTab(\'tourneys\')">SEE MORE '+I('fwd',13)+'</button></div>'
+     +'<div class="tour-rail">';
+    openList.forEach(function(t){h+=tourCardHTML(t);});
     h+='</div>';
   }
   /* ---- upcoming match ---- */
