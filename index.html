@@ -346,9 +346,9 @@ select.input{appearance:none;-webkit-appearance:none}
 .stat-box{background:var(--navy-3);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center}
 .stat-box .sv{font-size:19px;font-weight:900;color:var(--gold)}
 .stat-box .sl{font-size:9.5px;font-weight:700;color:var(--gray-2);letter-spacing:.6px;text-transform:uppercase;margin-top:2px}
-.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:4px}
-.quick-opt{display:flex;flex-direction:column;align-items:center;gap:7px;padding:13px 4px;border-radius:15px;background:linear-gradient(180deg,var(--navy-2),#071029);border:1px solid var(--line-soft);color:#E8EDF5;font-size:10px;font-weight:700;letter-spacing:.3px}
-.quick-opt .q-ico{width:38px;height:38px;border-radius:12px;background:var(--navy-3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--goldy)}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:4px}
+.quick-opt{display:flex;flex-direction:column;align-items:center;gap:10px;padding:22px 8px;border-radius:18px;background:linear-gradient(180deg,var(--navy-2),#071029);border:1px solid var(--line-soft);color:#E8EDF5;font-size:12px;font-weight:800;letter-spacing:.3px}
+.quick-opt .q-ico{width:48px;height:48px;border-radius:16px;background:var(--navy-3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--goldy)}
 .otp-row{display:flex;gap:10px;justify-content:center;margin:22px 0}
 .otp-box{width:46px;height:54px;border-radius:14px;background:var(--navy-3);border:1.5px solid var(--line);color:#fff;font-size:22px;font-weight:800;text-align:center;outline:none;caret-color:var(--gold)}
 .otp-box:focus{border-color:var(--blue)}
@@ -875,7 +875,7 @@ function bottomNavHTML(active){
   }
   return '<nav class="bottom-nav">'
   +item('home','HOME','home')+item('tourneys','TOURNAMENTS','trophy')+item('team','TEAM','users')
-  +item('discover','DISCOVER','search')+item('profile','PROFILE','user')
+  +item('profile','PROFILE','user')
   +'</nav>';
 }
 function fabHTML(){
@@ -1404,9 +1404,9 @@ SCREENS['home']=function(){
   }
   /* ---- quick actions (create team / request / challenge) ---- */
   h+='<div class="section-h">Quick actions</div><div class="quick-grid">'
-   +'<button class="quick-opt" onclick="goTab(\'discover\')"><span class="q-ico">'+I('search',19)+'</span>DISCOVER</button>'
-   +'<button class="quick-opt" onclick="'+qa2+'"><span class="q-ico">'+I('send',19)+'</span>REQUEST</button>'
-   +'<button class="quick-opt" onclick="nav(\'challenges\')"><span class="q-ico">'+I('flag',19)+'</span>CHALLENGE</button>'
+   +'<button class="quick-opt" onclick="goTab(\'discover\')"><span class="q-ico">'+I('search',24)+'</span>DISCOVER</button>'
+   +'<button class="quick-opt" onclick="'+qa2+'"><span class="q-ico">'+I('send',24)+'</span>REQUEST</button>'
+   +'<button class="quick-opt" onclick="nav(\'challenges\')"><span class="q-ico">'+I('flag',24)+'</span>CHALLENGE</button>'
    +'</div>';
   /* ---- open tournaments ---- */
   const openList=(typeof recTournaments==='function'?recTournaments():openTours).slice(0,3);
@@ -1645,7 +1645,7 @@ SCREENS['discover']=function(p){
   const tab=(p&&p.tab)||'TOURNAMENTS';
   const q=DISCOVER_Q.toLowerCase().trim();
   let h='<div class="screen no-anim">'
-  +'<div class="topbar">'+appLogoImg(40)+'<div class="grow"><div class="tb-title">Discover</div><div class="tb-sub">MUMBAI &middot; NEARBY</div></div></div>'
+  +topbar('Discover','MUMBAI &middot; NEARBY')
   +'<div class="screen-body">'
   +'<div class="searchbar">'+I('search',18)+'<input id="discover-search" placeholder="Search tournaments, teams, players..." value="'+esc(DISCOVER_Q)+'">'+'<button class="btn gold sm" style="flex-shrink:0" onclick="doDiscoverSearch()">SEARCH</button></div>'
   +'<div class="tabbar">'
