@@ -1371,50 +1371,51 @@ function myUpcomingMatches(){
 SCREENS['home']=function(){
   const me=cur(),team=myTeam();
   const notifs=unreadCount();
-  const openTours=STATE.tournaments.filter(function(t){return t.status==='OPEN';});
+  const openTours=STATE.tournaments.filter(function(t){return tourVisible(t)&&t.status==='OPEN';});
   const liveMatch=STATE.matches.filter(function(m){return m.status==='LIVE';});
   const upMatch=myUpcomingMatches();
-  const hero=[
-    (liveMatch.length?[{t:'Match is LIVE',b:'Tap to follow the action',c:'rgba(239,68,68,.14)',tab:'matches'}]:[]),
-    {t:'Find a tournament nearby',b:openTours.length+' open tournaments around you',c:'rgba(26,91,255,.14)',go:"goTab('discover')"}];
-  let h='<div class="screen no-anim"><div class="screen-body">'
-  +'<div class="row between" style="margin-bottom:14px"><div class="row" style="gap:12px">'+appLogoImg(46)+'<div class="greet">Good day,<span class="g-name">'+esc(me?me.name:'Player')+'</span></div></div>'
-  +'<div class="row" style="gap:8px"><button class="icon-btn notif-bell" onclick="nav(\'notifications\')">'+I('bell',20)+(notifs>0?'<span class="nb-dot"></span>':'')+'</button>'
-  +'<button class="icon-btn" onclick="goTab(\'profile\')">'+I('user',20)+'</button></div></div>'
-  +sliderHTML()
-  +'<div class="hero-carousel" id="home-carousel">';
-  hero.forEach(function(s){
-    h+='<div class="hero-slide" style="background:linear-gradient(140deg,'+s.c+',transparent),var(--navy-2);border:1px solid var(--line-soft);cursor:pointer" onclick="'+(s.go||('goTab(\''+s.tab+'\')'))+'">'
-    +'<div style="font-size:16.5px;font-weight:900">'+esc(s.t)+'</div><div class="muted">'+esc(s.b)+'</div>'
-    +'<span class="row" style="color:var(--gold);font-size:12px;font-weight:800;gap:6px;margin-top:4px">'+I('arrowr',15)+'</span></div>';
-  });
-  h+='</div><div class="hero-dots" id="home-dots"><span class="on"></span><span></span><span></span></div>'
-  +'<div class="section-h">Quick actions</div><div class="quick-grid">'
-  +'<button class="quick-opt" onclick="nav(\'create-team\')"><span class="q-ico">'+I('users',19)+'</span>CREATE TEAM</button>'
-  +'<button class="quick-opt" onclick="nav(\'create-tournament\')"><span class="q-ico">'+I('trophy',19)+'</span>TOURNAMENT</button>'
-  +'<button class="quick-opt" onclick="nav(\'challenges\')"><span class="q-ico">'+I('flag',19)+'</span>CHALLENGE</button>'
-  +'</div>';
-  const recT=recTournaments();
-  if(recT.length){
-    h+='<div class="section-h">Recommended for you</div><div class="rail">';
-    recT.forEach(function(t){h+='<div style="width:250px">'+tourCardHTML(t,true)+'</div>';});
-    h+='</div>';
-  }
-
+  const qa1=(team?"goTab('team')":"nav('create-team')");
+  const qa2=((team&&isStaff())?"nav('team-join-requests')":"goTab('team')");
+  let h='<div class="screen no-anim"><div class="screen-body">';
+  /* ---- greeting header ---- */
+  h+='<div class="row between" style="margin-bottom:14px"><div class="row" style="gap:12px">'+appLogoImg(46)+'<div class="greet">Good day,<span class="g-name">'+esc(me?me.name:'Player')+'</span></div></div>'
+   +'<div class="row" style="gap:8px"><button class="icon-btn notif-bell" onclick="nav(\'notifications\')">'+I('bell',20)+(notifs>0?'<span class="nb-dot"></span>':'')+'</button>'
+   +'<button class="icon-btn" onclick="goTab(\'profile\')">'+I('user',20)+'</button></div></div>';
+  /* ---- find a tournament nearby ---- */
+  h+='<div class="card" style="cursor:pointer;background:linear-gradient(140deg,rgba(26,91,255,.16),transparent),var(--navy-2);border:1px solid var(--line-soft)" onclick="goTab(\'tourneys\')">'
+   +'<div style="font-size:16.5px;font-weight:900">Find a tournament nearby</div>'
+   +'<div class="muted">'+openTours.length+' open tournament'+(openTours.length===1?'':'s')+' around you</div>'
+   +'<span class="row" style="color:var(--gold);font-size:12px;font-weight:800;gap:6px;margin-top:6px">'+I('arrowr',16)+'</span></div>';
+  /* ---- live now ---- */
   if(liveMatch.length){
     h+='<div class="section-h">Live now</div>';
     liveMatch.forEach(function(m){h+='<div class="card flat" style="padding:0;overflow:hidden">'+matchCardHTML(m).replace('<div class="match-card"','<div class="match-card" style="margin:0;border:none"')+'</div>';});
   }
+  /* ---- quick actions (create team / request / challenge) ---- */
+  h+='<div class="section-h">Quick actions</div><div class="quick-grid">'
+   +'<button class="quick-opt" onclick="'+qa1+'"><span class="q-ico">'+I('users',19)+'</span>CREATE TEAM</button>'
+   +'<button class="quick-opt" onclick="'+qa2+'"><span class="q-ico">'+I('send',19)+'</span>REQUEST</button>'
+   +'<button class="quick-opt" onclick="nav(\'challenges\')"><span class="q-ico">'+I('flag',19)+'</span>CHALLENGE</button>'
+   +'</div>';
+  /* ---- open tournaments ---- */
+  const openList=(typeof recTournaments==='function'?recTournaments():openTours).slice(0,3);
+  if(openList.length){
+    h+='<div class="section-h">Open tournaments</div>';
+    openList.forEach(function(t){h+=tourCardHTML(t);});
+  }
+  /* ---- upcoming match ---- */
   if(upMatch.length){
     h+='<div class="section-h">Upcoming match</div>';
     upMatch.slice(0,3).forEach(function(m){h+=matchCardHTML(m);});
   }
-  h+='<div class="section-h">Teams near you</div><div class="rail">';
+  /* ---- teams near you ---- */
+  h+='<div class="section-h">Teams near you</div>';
+  if(!STATE.teams.length)h+=emptyState('users','No teams yet','Create your first team to get started.');
   STATE.teams.slice(0,4).forEach(function(t){
-    h+='<div class="team-card" style="width:250px;margin:0" onclick="nav(\'team-profile\',{id:\''+t.id+'\'})">'+teamLogo(t)
-    +'<div class="grow"><div class="tc-name">'+esc(t.name)+'</div><div class="tc-meta">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+'</div></div>'+I('fwd',15)+'</div>';
+    h+='<div class="team-card" style="margin-bottom:10px" onclick="nav(\'team-profile\',{id:\''+t.id+'\'})">'+teamLogo(t)
+     +'<div class="grow"><div class="tc-name">'+esc(t.name)+'</div><div class="tc-meta">'+esc(t.area)+' &middot; '+memLbl(t.members.length)+'</div></div>'+I('fwd',15)+'</div>';
   });
-  h+='</div></div>'+fabHTML()+bottomNavHTML('home')+'</div>';
+  h+='</div>'+fabHTML()+bottomNavHTML('home')+'</div>';
   return h;
 };
 SCREENS_AFTER['home']=function(){
