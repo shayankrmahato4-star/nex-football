@@ -842,6 +842,10 @@ function mediaPreset(i){
 /* ================= NAVIGATION ================= */
 function nav(s,p){NAV_STACK.push({s:s,p:p||{}});try{history.pushState({n:NAV_STACK.length},'');}catch(e){}render(true);}
 function back(){if(NAV_STACK.length>1){NAV_STACK.pop();render(false,true);}else{replace('home');}}
+/* native shell hooks (no effect in a plain browser) */
+window.NEX_CAN_BACK=function(){try{return (typeof NAV_STACK!=='undefined'&&NAV_STACK.length>1)||false;}catch(e){return false;}};
+window.NEX_GO_BACK=function(){try{back();}catch(e){}};
+window.NEX_IS_NATIVE=function(){try{return !!(window.NexBridge&&window.NexBridge.deviceInfo);}catch(e){return false;}};
 function replace(s,p,skipAnim){NAV_STACK=[{s:s,p:p||{}}];render(false,skipAnim);}
 function render(anim,skip){
   const top=NAV_STACK[NAV_STACK.length-1];
@@ -3586,6 +3590,18 @@ function b64buf(buf){var b=new Uint8Array(buf),s='';for(var i=0;i<b.length;i++)s
 function unb64(str){var bin=atob(str),out=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out;}
 async function chatEnsureKeys(){
   if(CHAT_KEYPAIR&&CHAT_KEYPAIR.publicJwk)return CHAT_KEYPAIR;
+  var nb=(typeof window!=='undefined')?window.NexBridge:null;
+  try{
+    /* prefer the hardware-backed Android Keystore when running in the native app */
+    if(nb&&nb.secureGet){
+      var saved=nb.secureGet('e2e_priv'),savedPub=nb.secureGet('e2e_pub');
+      if(saved&&savedPub){
+        var k=await crypto.subtle.importKey('jwk',JSON.parse(saved),{name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']);
+        CHAT_KEYPAIR={privateKey:k,publicJwk:JSON.parse(savedPub)};
+        return CHAT_KEYPAIR;
+      }
+    }
+  }catch(e){}
   try{
     var raw=localStorage.getItem('nexChatPriv'),pub=localStorage.getItem('nexChatPub');
     if(raw&&pub){
@@ -3597,7 +3613,11 @@ async function chatEnsureKeys(){
   var kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']);
   var privJwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
   var pubJwk=await crypto.subtle.exportKey('jwk',kp.publicKey);
-  try{localStorage.setItem('nexChatPriv',JSON.stringify(privJwk));localStorage.setItem('nexChatPub',JSON.stringify(pubJwk));}catch(e){}
+  if(nb&&nb.secureSet){
+    try{nb.secureSet('e2e_priv',JSON.stringify(privJwk));nb.secureSet('e2e_pub',JSON.stringify(pubJwk));}catch(e){}
+  }else{
+    try{localStorage.setItem('nexChatPriv',JSON.stringify(privJwk));localStorage.setItem('nexChatPub',JSON.stringify(pubJwk));}catch(e){}
+  }
   CHAT_KEYPAIR={privateKey:kp.privateKey,publicJwk:pubJwk};
   try{
     if(SB&&SB_ONLINE&&STATE.currentUser)
@@ -3745,7 +3765,19 @@ function chatRenderList(){
     box.innerHTML='<div class="card flat"><div class="tiny" style="text-align:center;padding:10px">Could not load conversations. Check your connection.</div></div>';
   });
 }
-SCREENS_AFTER['messages']=function(){try{chatEnsureKeys().then(function(){chatRenderList();},function(){chatRenderList();});}catch(e){chatRenderList();}};
+function nexRegisterPush(){
+  try{
+    var nb=window.NexBridge;
+    if(!nb||!nb.pushToken)return;
+    var tok=nb.pushToken();
+    if(!tok||!STATE.currentUser||!SB||!SB_ONLINE)return;
+    if(localStorage.getItem('nexPushTok')===tok)return;
+    SB.from('device_tokens').upsert({player_id:STATE.currentUser,device_id:CHAT_DEVICE,token:tok,platform:'android'},{onConflict:'player_id,device_id'}).then(function(){
+      try{localStorage.setItem('nexPushTok',tok);}catch(e){}
+    },function(){});
+  }catch(e){}
+}
+SCREENS_AFTER['messages']=function(){nexRegisterPush();try{chatEnsureKeys().then(function(){chatRenderList();},function(){chatRenderList();});}catch(e){chatRenderList();}};
 
 /* ================= NEW CHAT ================= */
 SCREENS['new-chat']=function(){
