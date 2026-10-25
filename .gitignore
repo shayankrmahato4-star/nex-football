@@ -1,0 +1,10 @@
+# build outputs
+build/
+.gradle/
+local.properties
+*.iml
+.idea/
+android/app/build/
+android/build/
+*.hprof
+.DS_Store

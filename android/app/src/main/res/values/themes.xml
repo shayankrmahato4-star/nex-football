@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.NexFootball" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#02061B</item>
+        <item name="android:statusBarColor">#050A24</item>
+        <item name="android:navigationBarColor">#050A24</item>
+    </style>
+</resources>
